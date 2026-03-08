@@ -33,8 +33,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	namespace := "default"
-
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -66,7 +64,7 @@ func main() {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-
+		namespace := r.URL.Query().Get("namespace")
 		pods, err := models.GetPods(clientset, namespace)
 		if err != nil {
 			http.Error(w, "failed to get pods", http.StatusInternalServerError)
@@ -85,7 +83,7 @@ func main() {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-
+		namespace := r.URL.Query().Get("namespace")
 		deployments, err := models.GetDeployments(clientset, namespace)
 		if err != nil {
 			http.Error(w, "failed to get deployments", http.StatusInternalServerError)
@@ -104,7 +102,7 @@ func main() {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-
+		namespace := r.URL.Query().Get("namespace")
 		services, err := models.GetServices(clientset, namespace)
 		if err != nil {
 			http.Error(w, "failed to get services", http.StatusInternalServerError)
@@ -123,10 +121,30 @@ func main() {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-
+		namespace := r.URL.Query().Get("namespace")
 		ingresses, err := models.GetIngresses(clientset, namespace)
 		if err != nil {
 			http.Error(w, "failed to get ingresses", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		if err := json.NewEncoder(w).Encode(ingresses); err != nil {
+			http.Error(w, "failed to encode json", http.StatusInternalServerError)
+			return
+		}
+
+	})
+	http.HandleFunc("/summary", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		namespace := r.URL.Query().Get("namespace")
+		ingresses, err := models.GetClusterSummary(clientset, namespace)
+		if err != nil {
+			http.Error(w, "failed to get cluster info", http.StatusInternalServerError)
+			fmt.Print(err)
 			return
 		}
 

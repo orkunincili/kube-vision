@@ -10,19 +10,25 @@ import (
 )
 
 type Node struct {
-	Name           string   `json:"name"`
-	OS             string   `json:"os"`
-	Status         string   `json:"status"`
-	IP             string   `json:"ip"`
-	Hostname       string   `json:"hostname"`
-	Roles          []string `json:"roles"`
-	CRI            string   `json:"cri"`
-	KubeletVersion string   `json:"kubelet_version"`
-	PodCount       int      `json:"pod_count"`
+	Name            string   `json:"name"`
+	OS              string   `json:"os"`
+	Status          string   `json:"status"`
+	IP              string   `json:"ip"`
+	Hostname        string   `json:"hostname"`
+	Roles           []string `json:"roles"`
+	CRI             string   `json:"cri"`
+	KubeletVersion  string   `json:"kubelet_version"`
+	TotalPodCount   int      `json:"pod_count"`
+	RunningPodCount int      `json:"running"`
+	OthersPodCount  int      `json:"others"`
 }
 
 func GetNodes(clientset *kubernetes.Clientset) ([]Node, error) {
 	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	podCountByNode, err := PodCountsByNode(clientset)
+	if err != nil {
+		return nil, err
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -37,20 +43,19 @@ func GetNodes(clientset *kubernetes.Clientset) ([]Node, error) {
 			return nil, err
 		}
 		roles := GetNodeRoles(node)
-		podCount, err := GetNodePodCount(clientset, node.Name)
-		if err != nil {
-			return nil, err
-		}
+
 		newNode := Node{
-			Name:           node.Name,
-			OS:             node.Status.NodeInfo.OSImage,
-			Status:         Status,
-			IP:             InternalIP,
-			Hostname:       Hostname,
-			Roles:          roles,
-			CRI:            node.Status.NodeInfo.ContainerRuntimeVersion,
-			KubeletVersion: node.Status.NodeInfo.KubeletVersion,
-			PodCount:       podCount,
+			Name:            node.Name,
+			OS:              node.Status.NodeInfo.OSImage,
+			Status:          Status,
+			IP:              InternalIP,
+			Hostname:        Hostname,
+			Roles:           roles,
+			CRI:             node.Status.NodeInfo.ContainerRuntimeVersion,
+			KubeletVersion:  node.Status.NodeInfo.KubeletVersion,
+			TotalPodCount:   podCountByNode[node.Name]["total"],
+			RunningPodCount: podCountByNode[node.Name]["running"],
+			OthersPodCount:  podCountByNode[node.Name]["others"],
 		}
 		result = append(result, newNode)
 	}
@@ -77,7 +82,7 @@ func GetStatus(node v1.Node) (string, error) {
 			if condition.Status == "True" {
 				return "Ready", nil
 			} else {
-				return "Not Ready", nil
+				return "NotReady", nil
 			}
 		}
 	}
@@ -103,16 +108,31 @@ func GetNodeRoles(node v1.Node) []string {
 
 	return roles
 }
-func GetNodePodCount(clientset *kubernetes.Clientset, nodeName string) (int, error) {
 
-	options := metav1.ListOptions{
-		FieldSelector: "spec.nodeName=" + nodeName,
-	}
+func PodCountsByNode(clientset *kubernetes.Clientset) (map[string]map[string]int, error) {
 
-	podList, err := clientset.CoreV1().Pods("").List(context.TODO(), options)
+	podList, err := clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return 0, err
+
+		return nil, err
 	}
 
-	return len(podList.Items), nil
+	podCountsByNode := make(map[string]map[string]int)
+
+	for _, p := range podList.Items {
+
+		if p.Spec.NodeName != "" {
+			if podCountsByNode[p.Spec.NodeName] == nil {
+				podCountsByNode[p.Spec.NodeName] = make(map[string]int)
+			}
+			podCountsByNode[p.Spec.NodeName]["total"]++
+			if GetPodStatus(p) == "Running" {
+				podCountsByNode[p.Spec.NodeName]["running"]++
+			} else {
+				podCountsByNode[p.Spec.NodeName]["others"]++
+			}
+		}
+	}
+
+	return podCountsByNode, nil
 }
