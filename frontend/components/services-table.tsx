@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Search, Network } from "lucide-react"
-import { type K8sService } from "@/lib/k8s-data"
+import { useState, useMemo, useEffect } from "react"
+import { Search, Network, Loader2, AlertCircle } from "lucide-react"
+import { fetchServices } from "@/lib/api" // api.ts içindeki fonksiyonu çağırıyoruz
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
@@ -21,42 +21,89 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-function ServiceTypeBadge({ type }: { type: K8sService["type"] }) {
-  const colors: Record<K8sService["type"], string> = {
-    ClusterIP: "bg-chart-2/15 text-chart-2 border-chart-2/20",
-    NodePort: "bg-warning/15 text-warning border-warning/20",
-    LoadBalancer: "bg-primary/15 text-primary border-primary/20",
-    ExternalName: "bg-chart-4/15 text-chart-4 border-chart-4/20",
+export interface K8sService {
+  name: string
+  namespace: string
+  type: string
+  ports: string
+  cluster_ip: string
+  external_ip: string
+}
+
+function ServiceTypeBadge({ type }: { type: string }) {
+  const colors: Record<string, string> = {
+    ClusterIP: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    NodePort: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+    LoadBalancer: "bg-green-500/10 text-green-500 border-green-500/20",
+    ExternalName: "bg-purple-500/10 text-purple-500 border-purple-500/20",
   }
   return (
-    <Badge variant="outline" className={`text-[10px] font-normal ${colors[type]}`}>
+    <Badge variant="outline" className={`text-[10px] font-normal ${colors[type] || "text-muted-foreground"}`}>
       {type}
     </Badge>
   )
 }
 
-export function ServicesTable({
-  services,
-  namespaces,
-}: {
-  services: K8sService[]
-  namespaces: string[]
-}) {
+export function ServicesTable() {
+  const [services, setServices] = useState<K8sService[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [nsFilter, setNsFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
 
+  // API'den veri çekme işlemi
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        setLoading(true)
+        const data = await fetchServices()
+        setServices(data)
+        setError(null)
+      } catch (err: any) {
+        console.error("Service fetch error:", err)
+        setError(err.message || "Failed to fetch services")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadServices()
+  }, [])
+
+  // Dinamik filtre seçenekleri
+  const namespaces = useMemo(() => ["all", ...new Set(services.map((s) => s.namespace))], [services])
+  const types = useMemo(() => ["all", ...new Set(services.map((s) => s.type))], [services])
+
   const filtered = useMemo(() => {
     return services.filter((svc) => {
-      const matchesSearch =
-        search === "" || svc.name.toLowerCase().includes(search.toLowerCase())
+      const matchesSearch = search === "" || svc.name.toLowerCase().includes(search.toLowerCase())
       const matchesNs = nsFilter === "all" || svc.namespace === nsFilter
       const matchesType = typeFilter === "all" || svc.type === typeFilter
       return matchesSearch && matchesNs && matchesType
     })
   }, [services, search, nsFilter, typeFilter])
 
-  const types = [...new Set(services.map((s) => s.type))]
+  if (loading) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <span className="text-xs">Fetching Services...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
+        <AlertCircle className="h-8 w-8 text-destructive" />
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-destructive">API Error</h3>
+          <p className="text-xs text-muted-foreground max-w-[300px]">{error}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="rounded-lg border border-border bg-card">
@@ -66,6 +113,7 @@ export function ServicesTable({
           {filtered.length} of {services.length} services shown
         </p>
       </div>
+
       <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3">
         <div className="relative min-w-[200px] flex-1">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -73,106 +121,79 @@ export function ServicesTable({
             placeholder="Search services..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-8 pl-9 bg-secondary border-border text-foreground text-xs placeholder:text-muted-foreground"
+            className="h-8 pl-9 bg-secondary border-border text-foreground text-xs"
           />
         </div>
+        
         <Select value={nsFilter} onValueChange={setNsFilter}>
-          <SelectTrigger className="h-8 w-[160px] bg-secondary border-border text-xs text-foreground">
+          <SelectTrigger className="h-8 w-[140px] bg-secondary border-border text-xs">
             <SelectValue placeholder="Namespace" />
           </SelectTrigger>
           <SelectContent className="bg-card border-border">
-            <SelectItem value="all">All Namespaces</SelectItem>
-            {namespaces.sort().map((ns) => (
+            {namespaces.map((ns) => (
               <SelectItem key={ns} value={ns}>
-                {ns}
+                {ns === "all" ? "All Namespaces" : ns}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="h-8 w-[160px] bg-secondary border-border text-xs text-foreground">
+          <SelectTrigger className="h-8 w-[140px] bg-secondary border-border text-xs">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent className="bg-card border-border">
-            <SelectItem value="all">All Types</SelectItem>
             {types.map((t) => (
               <SelectItem key={t} value={t}>
-                {t}
+                {t === "all" ? "All Types" : t}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
+
       <Table>
         <TableHeader>
           <TableRow className="border-border hover:bg-transparent">
-            <TableHead className="text-muted-foreground">Name</TableHead>
-            <TableHead className="text-muted-foreground">Namespace</TableHead>
-            <TableHead className="text-muted-foreground">Type</TableHead>
-            <TableHead className="text-muted-foreground">Ports</TableHead>
-            <TableHead className="text-muted-foreground hidden md:table-cell">Selector</TableHead>
-            <TableHead className="text-muted-foreground hidden lg:table-cell">Age</TableHead>
+            <TableHead className="text-muted-foreground text-[11px] uppercase tracking-wider">Name</TableHead>
+            <TableHead className="text-muted-foreground text-[11px] uppercase tracking-wider">Namespace</TableHead>
+            <TableHead className="text-muted-foreground text-[11px] uppercase tracking-wider">Type</TableHead>
+            <TableHead className="text-muted-foreground text-[11px] uppercase tracking-wider">Cluster IP</TableHead>
+            <TableHead className="text-muted-foreground text-[11px] uppercase tracking-wider">Ports</TableHead>
+            <TableHead className="text-muted-foreground text-[11px] uppercase tracking-wider hidden md:table-cell">External IP</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filtered.map((svc) => (
             <TableRow key={`${svc.namespace}-${svc.name}`} className="border-border">
-              <TableCell>
+              <TableCell className="font-medium text-xs">
                 <div className="flex items-center gap-2">
-                  <Network className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="font-mono text-xs text-foreground truncate max-w-[200px]">{svc.name}</span>
+                  <Network className="h-3.5 w-3.5 text-muted-foreground" />
+                  {svc.name}
                 </div>
               </TableCell>
               <TableCell>
-                <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground border-border">
-                  {svc.namespace}
+                <Badge variant="outline" className="text-[10px] font-normal border-border">
+                    {svc.namespace}
                 </Badge>
               </TableCell>
               <TableCell>
                 <ServiceTypeBadge type={svc.type} />
               </TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-1">
-                  {svc.ports.map((p, i) => (
-                    <code
-                      key={i}
-                      className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-foreground font-mono"
-                    >
-                      {p.port}{p.nodePort ? `:${p.nodePort}` : ""}/{p.protocol}
-                    </code>
-                  ))}
-                </div>
+              <TableCell className="font-mono text-[11px] text-foreground">
+                {svc.cluster_ip}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <div className="flex flex-wrap gap-1">
-                  {Object.entries(svc.selector).slice(0, 2).map(([k, v]) => (
-                    <code
-                      key={k}
-                      className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground font-mono"
-                    >
-                      {k}={v}
-                    </code>
-                  ))}
-                  {Object.keys(svc.selector).length === 0 && (
-                    <span className="text-[11px] text-muted-foreground">-</span>
-                  )}
-                  {Object.keys(svc.selector).length > 2 && (
-                    <span className="text-[10px] text-muted-foreground">+{Object.keys(svc.selector).length - 2}</span>
-                  )}
-                </div>
+              <TableCell className="font-mono text-[11px] text-foreground">
+                {/* Obje hatasını önlemek için güvenli render */}
+                {typeof svc.ports === "string" ? svc.ports : JSON.stringify(svc.ports)}
               </TableCell>
-              <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
-                {svc.age}
+              <TableCell className="hidden md:table-cell font-mono text-[11px]">
+                <span className={svc.external_ip === "None" ? "text-muted-foreground/40" : "text-primary font-medium"}>
+                  {svc.external_ip}
+                </span>
               </TableCell>
             </TableRow>
           ))}
-          {filtered.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                No services found matching your filters
-              </TableCell>
-            </TableRow>
-          )}
         </TableBody>
       </Table>
     </div>
