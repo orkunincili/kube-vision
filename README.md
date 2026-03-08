@@ -1,6 +1,6 @@
 # ☸️ Kube-Vision
 
-[![Go Version](https://img.shields.io/badge/Go-1.22.2-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/Go-1.25.0-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![Next.js Version](https://img.shields.io/badge/Next.js-16.1-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![React Version](https://img.shields.io/badge/React-19.2-61DAFB?style=flat&logo=react)](https://reactjs.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.2-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
@@ -15,7 +15,7 @@ Follow these steps to get the project up and running on your local machine.
 
 ### 1. Prerequisites
 - A valid `~/.kube/config` file to access your Kubernetes cluster.
-- **Go** (1.22.2 recommended)
+- **Go** (1.25.0 recommended)
 - **Node.js** (20.x or later recommended for Next.js 16)
 - **pnpm** or **npm**
 
