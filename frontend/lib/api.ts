@@ -15,6 +15,14 @@ export async function fetchPods() {
   if (!res.ok) throw new Error(`podes fetch failed: ${res.status}`);
   return res.json();
 }
+export async function fetchDeployments() {
+  const base = process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (!base) throw new Error("NEXT_PUBLIC_BACKEND_URL missing");
+
+  const res = await fetch(`${base}/deployments`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`deployments fetch failed: ${res.status}`);
+  return res.json();
+}
 
 export async function fetchServices() {
   const base = process.env.NEXT_PUBLIC_BACKEND_URL;
