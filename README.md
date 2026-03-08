@@ -17,7 +17,7 @@ Follow these steps to get the project up and running on your local machine.
 - A valid `~/.kube/config` file to access your Kubernetes cluster.
 - **Go** (1.22.2 recommended)
 - **Node.js** (20.x or later recommended for Next.js 16)
-- **pnpm** (preferred) or **npm**
+- **pnpm** or **npm**
 
 ### 2. Run the Backend (Go)
 The backend interacts with the Kubernetes API to fetch live data.
