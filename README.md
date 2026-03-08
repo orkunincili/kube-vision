@@ -1,11 +1,36 @@
-# kube-vision
-It's basic, unfinished Kubernetes Dashboard for personal use 
+# ☸️ Kube-Vision
 
-## Run backend
+[![Go Version](https://img.shields.io/badge/Go-1.22.2-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![Next.js Version](https://img.shields.io/badge/Next.js-16.1-black?style=flat&logo=next.js)](https://nextjs.org/)
+[![React Version](https://img.shields.io/badge/React-19.2-61DAFB?style=flat&logo=react)](https://reactjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.2-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
+[![Status](https://img.shields.io/badge/Status-In--Development-orange)]()
+
+**Kube-Vision** is a basic, unfinished Kubernetes Dashboard for personal use and learning Golang.
+
+
+## 🛠️ Installation & Setup
+
+Follow these steps to get the project up and running on your local machine.
+
+### 1. Prerequisites
+- A valid `~/.kube/config` file to access your Kubernetes cluster.
+- **Go** (1.22.2 recommended)
+- **Node.js** (20.x or later recommended for Next.js 16)
+- **pnpm** (preferred) or **npm**
+
+### 2. Run the Backend (Go)
+The backend interacts with the Kubernetes API to fetch live data.
+```bash
 cd backend
-go run .
+go mod tidy
+go run main.go
+```
 
-## Run frontend
+### 3. Run the Frontend (Next.js)
+The frontend provides a modern web interface to visualize your cluster data.
+```bash
 cd frontend
-npm install
-npm run dev
+npm install   # Install dependencies
+npm run dev   # Start development server
+```
