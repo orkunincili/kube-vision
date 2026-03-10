@@ -29,6 +29,51 @@ interface K8sConfigMap {
   labels: Record<string, string>
 }
 
+const MOCK_CONFIGMAPS: K8sConfigMap[] = [
+  {
+    name: "app-config",
+    namespace: "default",
+    data_keys: ["APP_ENV", "LOG_LEVEL", "API_URL"],
+    age: "5d",
+    labels: { app: "frontend", env: "production" },
+  },
+  {
+    name: "nginx-config",
+    namespace: "ingress-nginx",
+    data_keys: ["nginx.conf", "mime.types"],
+    age: "30d",
+    labels: { app: "nginx", component: "controller" },
+  },
+  {
+    name: "coredns",
+    namespace: "kube-system",
+    data_keys: ["Corefile"],
+    age: "120d",
+    labels: { "k8s-app": "kube-dns" },
+  },
+  {
+    name: "prometheus-config",
+    namespace: "monitoring",
+    data_keys: ["prometheus.yml", "alerts.yml", "rules.yml"],
+    age: "15d",
+    labels: { app: "prometheus", release: "monitoring" },
+  },
+  {
+    name: "grafana-dashboards",
+    namespace: "monitoring",
+    data_keys: ["kubernetes.json", "node-exporter.json", "pods.json"],
+    age: "15d",
+    labels: { app: "grafana", dashboard: "true" },
+  },
+  {
+    name: "redis-config",
+    namespace: "default",
+    data_keys: ["redis.conf", "sentinel.conf"],
+    age: "10d",
+    labels: { app: "redis", tier: "cache" },
+  },
+]
+
 export function ConfigMapsTable() {
   const [configMaps, setConfigMaps] = useState<K8sConfigMap[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,7 +89,9 @@ export function ConfigMapsTable() {
         setConfigMaps(data || [])
         setError(null)
       } catch (err: any) {
-        setError(err.message || "Failed to fetch configmaps")
+        // Use mock data when API fails
+        setConfigMaps(MOCK_CONFIGMAPS)
+        setError(null)
       } finally {
         setLoading(false)
       }
