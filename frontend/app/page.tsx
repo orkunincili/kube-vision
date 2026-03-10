@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { 
   Server, Box, KeyRound, LayoutDashboard, FileText, 
-  Network, Globe, Loader2, Layers, GitBranch 
+  Network, Globe, Loader2, Layers 
 } from "lucide-react"
 
 import { DashboardHeader } from "@/components/dashboard-header"
@@ -15,7 +15,7 @@ import { SecretsTable } from "@/components/secrets-table"
 import { ConfigMapsTable } from "@/components/configmaps-table"
 import { ServicesTable } from "@/components/services-table"
 import { IngressTable } from "@/components/ingress-table"
-import { ClusterDiagram } from "@/components/cluster-diagram"
+import { NodeStatusCard } from "@/components/node-status-card"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchSummary } from "@/lib/api"
@@ -74,9 +74,6 @@ export default function KubernetesDashboard() {
               <TabsTrigger value="overview" className="gap-2 text-xs">
                 <LayoutDashboard className="h-3.5 w-3.5" /> Overview
               </TabsTrigger>
-              <TabsTrigger value="diagram" className="gap-2 text-xs">
-                <GitBranch className="h-3.5 w-3.5" /> Diagram
-              </TabsTrigger>
               <TabsTrigger value="nodes" className="gap-2 text-xs">
                 <Server className="h-3.5 w-3.5" /> Nodes
               </TabsTrigger>
@@ -102,10 +99,7 @@ export default function KubernetesDashboard() {
 
             <TabsContent value="overview" className="space-y-6">
               <ClusterSummary data={data} />
-            </TabsContent>
-
-            <TabsContent value="diagram">
-              <ClusterDiagram />
+              <NodeStatusCard nodes={data.node} />
             </TabsContent>
 
             <TabsContent value="nodes"><NodesTable /></TabsContent>
