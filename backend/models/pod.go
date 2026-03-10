@@ -2,8 +2,6 @@ package models
 
 import (
 	"context"
-	"strconv"
-	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +29,7 @@ func GetPods(clientset *kubernetes.Clientset, ns string) ([]Pod, error) {
 
 	for _, pod := range Pods.Items {
 		readyContainers, err := GetPodContainerStatus(pod)
-		podAge, err := GetPodAge(pod.CreationTimestamp)
+		podAge, err := GetAge(pod.CreationTimestamp)
 		if err != nil {
 			return nil, err
 		}
@@ -58,17 +56,6 @@ func GetPodContainerStatus(pod v1.Pod) (int, error) {
 		}
 	}
 	return readyContainers, nil
-}
-
-func GetPodAge(CreationTimestamp metav1.Time) (string, error) {
-
-	duration := time.Since(CreationTimestamp.Time)
-
-	if duration.Hours() > 24 {
-		days := int(duration.Hours() / 24)
-		return strconv.Itoa(days) + "d", nil
-	}
-	return duration.Round(time.Second).String(), nil
 }
 
 func GetPodStatus(pod v1.Pod) string {

@@ -27,7 +27,7 @@ export interface K8sSecret {
   name: string
   namespace: string
   type: string
-  dataKeys: string[]
+  data_keys: string[]
   age: string
   labels: Record<string, string>
 }
@@ -35,7 +35,7 @@ export interface K8sSecret {
 export interface K8sConfigMap {
   name: string
   namespace: string
-  dataKeys: string[]
+  data_keys: string[]
   age: string
   labels: Record<string, string>
 }
@@ -153,43 +153,43 @@ export const pods: K8sPod[] = [
 
 // ---- SECRETS ----
 export const secrets: K8sSecret[] = [
-  { name: "default-token-x7k2p", namespace: "default", type: "kubernetes.io/service-account-token", dataKeys: ["ca.crt", "namespace", "token"], age: "30d", labels: {} },
-  { name: "nginx-tls-cert", namespace: "default", type: "kubernetes.io/tls", dataKeys: ["tls.crt", "tls.key"], age: "14d", labels: { app: "nginx" } },
-  { name: "redis-auth", namespace: "cache", type: "Opaque", dataKeys: ["password", "sentinel-password"], age: "7d", labels: { app: "redis" } },
-  { name: "postgres-credentials", namespace: "database", type: "Opaque", dataKeys: ["username", "password", "connection-string", "replication-password"], age: "14d", labels: { app: "postgres" } },
-  { name: "api-gateway-tls", namespace: "ingress", type: "kubernetes.io/tls", dataKeys: ["tls.crt", "tls.key", "ca.crt"], age: "7d", labels: { app: "api-gateway" } },
-  { name: "oauth2-client-secret", namespace: "auth", type: "Opaque", dataKeys: ["client-id", "client-secret", "cookie-secret"], age: "21d", labels: { app: "auth-service" } },
-  { name: "jwt-signing-key", namespace: "auth", type: "Opaque", dataKeys: ["private-key", "public-key"], age: "21d", labels: { app: "auth-service" } },
-  { name: "grafana-admin", namespace: "monitoring", type: "Opaque", dataKeys: ["admin-user", "admin-password"], age: "21d", labels: { app: "grafana" } },
-  { name: "alertmanager-config", namespace: "monitoring", type: "Opaque", dataKeys: ["alertmanager.yaml", "slack-webhook-url"], age: "21d", labels: { app: "alertmanager" } },
-  { name: "prometheus-etcd-certs", namespace: "monitoring", type: "Opaque", dataKeys: ["etcd-ca.crt", "etcd-client.crt", "etcd-client.key"], age: "30d", labels: { app: "prometheus" } },
-  { name: "registry-pull-secret", namespace: "default", type: "kubernetes.io/dockerconfigjson", dataKeys: [".dockerconfigjson"], age: "30d", labels: { type: "registry" } },
-  { name: "ml-model-credentials", namespace: "ml", type: "Opaque", dataKeys: ["aws-access-key", "aws-secret-key", "s3-bucket"], age: "6d", labels: { app: "ml-training" } },
-  { name: "cert-manager-webhook-ca", namespace: "cert-manager", type: "Opaque", dataKeys: ["ca.crt", "tls.crt", "tls.key"], age: "14d", labels: { app: "cert-manager" } },
-  { name: "elasticsearch-credentials", namespace: "logging", type: "Opaque", dataKeys: ["username", "password", "es-url"], age: "10d", labels: { app: "fluentd" } },
-  { name: "cluster-wildcard-tls", namespace: "ingress", type: "kubernetes.io/tls", dataKeys: ["tls.crt", "tls.key"], age: "3d", labels: { domain: "*.cluster.local" } },
+  { name: "default-token-x7k2p", namespace: "default", type: "kubernetes.io/service-account-token", data_keys: ["ca.crt", "namespace", "token"], age: "30d", labels: {} },
+  { name: "nginx-tls-cert", namespace: "default", type: "kubernetes.io/tls", data_keys: ["tls.crt", "tls.key"], age: "14d", labels: { app: "nginx" } },
+  { name: "redis-auth", namespace: "cache", type: "Opaque", data_keys: ["password", "sentinel-password"], age: "7d", labels: { app: "redis" } },
+  { name: "postgres-credentials", namespace: "database", type: "Opaque", data_keys: ["username", "password", "connection-string", "replication-password"], age: "14d", labels: { app: "postgres" } },
+  { name: "api-gateway-tls", namespace: "ingress", type: "kubernetes.io/tls", data_keys: ["tls.crt", "tls.key", "ca.crt"], age: "7d", labels: { app: "api-gateway" } },
+  { name: "oauth2-client-secret", namespace: "auth", type: "Opaque", data_keys: ["client-id", "client-secret", "cookie-secret"], age: "21d", labels: { app: "auth-service" } },
+  { name: "jwt-signing-key", namespace: "auth", type: "Opaque", data_keys: ["private-key", "public-key"], age: "21d", labels: { app: "auth-service" } },
+  { name: "grafana-admin", namespace: "monitoring", type: "Opaque", data_keys: ["admin-user", "admin-password"], age: "21d", labels: { app: "grafana" } },
+  { name: "alertmanager-config", namespace: "monitoring", type: "Opaque", data_keys: ["alertmanager.yaml", "slack-webhook-url"], age: "21d", labels: { app: "alertmanager" } },
+  { name: "prometheus-etcd-certs", namespace: "monitoring", type: "Opaque", data_keys: ["etcd-ca.crt", "etcd-client.crt", "etcd-client.key"], age: "30d", labels: { app: "prometheus" } },
+  { name: "registry-pull-secret", namespace: "default", type: "kubernetes.io/dockerconfigjson", data_keys: [".dockerconfigjson"], age: "30d", labels: { type: "registry" } },
+  { name: "ml-model-credentials", namespace: "ml", type: "Opaque", data_keys: ["aws-access-key", "aws-secret-key", "s3-bucket"], age: "6d", labels: { app: "ml-training" } },
+  { name: "cert-manager-webhook-ca", namespace: "cert-manager", type: "Opaque", data_keys: ["ca.crt", "tls.crt", "tls.key"], age: "14d", labels: { app: "cert-manager" } },
+  { name: "elasticsearch-credentials", namespace: "logging", type: "Opaque", data_keys: ["username", "password", "es-url"], age: "10d", labels: { app: "fluentd" } },
+  { name: "cluster-wildcard-tls", namespace: "ingress", type: "kubernetes.io/tls", data_keys: ["tls.crt", "tls.key"], age: "3d", labels: { domain: "*.cluster.local" } },
 ]
 
 // ---- CONFIGMAPS ----
 export const configMaps: K8sConfigMap[] = [
-  { name: "coredns", namespace: "kube-system", dataKeys: ["Corefile"], age: "30d", labels: { "k8s-app": "kube-dns" } },
-  { name: "kube-proxy", namespace: "kube-system", dataKeys: ["config.conf", "kubeconfig.conf"], age: "30d", labels: { app: "kube-proxy" } },
-  { name: "kubeadm-config", namespace: "kube-system", dataKeys: ["ClusterConfiguration", "ClusterStatus"], age: "30d", labels: {} },
-  { name: "kubelet-config", namespace: "kube-system", dataKeys: ["kubelet"], age: "30d", labels: {} },
-  { name: "nginx-config", namespace: "default", dataKeys: ["nginx.conf", "mime.types", "default.conf"], age: "3d", labels: { app: "nginx" } },
-  { name: "redis-config", namespace: "cache", dataKeys: ["redis.conf", "sentinel.conf"], age: "7d", labels: { app: "redis" } },
-  { name: "postgres-init-scripts", namespace: "database", dataKeys: ["init.sql", "create-extensions.sql", "seed-data.sql"], age: "14d", labels: { app: "postgres" } },
-  { name: "api-gateway-routes", namespace: "ingress", dataKeys: ["routes.yaml", "rate-limits.yaml", "cors-config.yaml"], age: "12h", labels: { app: "api-gateway" } },
-  { name: "auth-config", namespace: "auth", dataKeys: ["config.yaml", "providers.yaml"], age: "2d", labels: { app: "auth-service" } },
-  { name: "prometheus-config", namespace: "monitoring", dataKeys: ["prometheus.yml", "alerting-rules.yml", "recording-rules.yml"], age: "21d", labels: { app: "prometheus" } },
-  { name: "grafana-dashboards", namespace: "monitoring", dataKeys: ["cluster-overview.json", "node-exporter.json", "pod-metrics.json", "networking.json"], age: "21d", labels: { app: "grafana" } },
-  { name: "grafana-datasources", namespace: "monitoring", dataKeys: ["datasources.yaml"], age: "21d", labels: { app: "grafana" } },
-  { name: "alertmanager-templates", namespace: "monitoring", dataKeys: ["slack.tmpl", "email.tmpl"], age: "21d", labels: { app: "alertmanager" } },
-  { name: "fluentd-config", namespace: "logging", dataKeys: ["fluent.conf", "kubernetes.conf", "output.conf"], age: "10d", labels: { app: "fluentd" } },
-  { name: "ml-pipeline-config", namespace: "ml", dataKeys: ["pipeline.yaml", "hyperparams.json", "feature-config.yaml"], age: "6h", labels: { app: "ml-training" } },
-  { name: "cert-manager-config", namespace: "cert-manager", dataKeys: ["config.yaml"], age: "14d", labels: { app: "cert-manager" } },
-  { name: "cluster-info", namespace: "kube-public", dataKeys: ["kubeconfig"], age: "30d", labels: {} },
-  { name: "istio-mesh", namespace: "istio-system", dataKeys: ["mesh", "meshNetworks"], age: "15d", labels: { app: "istiod" } },
+  { name: "coredns", namespace: "kube-system", data_keys: ["Corefile"], age: "30d", labels: { "k8s-app": "kube-dns" } },
+  { name: "kube-proxy", namespace: "kube-system", data_keys: ["config.conf", "kubeconfig.conf"], age: "30d", labels: { app: "kube-proxy" } },
+  { name: "kubeadm-config", namespace: "kube-system", data_keys: ["ClusterConfiguration", "ClusterStatus"], age: "30d", labels: {} },
+  { name: "kubelet-config", namespace: "kube-system", data_keys: ["kubelet"], age: "30d", labels: {} },
+  { name: "nginx-config", namespace: "default", data_keys: ["nginx.conf", "mime.types", "default.conf"], age: "3d", labels: { app: "nginx" } },
+  { name: "redis-config", namespace: "cache", data_keys: ["redis.conf", "sentinel.conf"], age: "7d", labels: { app: "redis" } },
+  { name: "postgres-init-scripts", namespace: "database", data_keys: ["init.sql", "create-extensions.sql", "seed-data.sql"], age: "14d", labels: { app: "postgres" } },
+  { name: "api-gateway-routes", namespace: "ingress", data_keys: ["routes.yaml", "rate-limits.yaml", "cors-config.yaml"], age: "12h", labels: { app: "api-gateway" } },
+  { name: "auth-config", namespace: "auth", data_keys: ["config.yaml", "providers.yaml"], age: "2d", labels: { app: "auth-service" } },
+  { name: "prometheus-config", namespace: "monitoring", data_keys: ["prometheus.yml", "alerting-rules.yml", "recording-rules.yml"], age: "21d", labels: { app: "prometheus" } },
+  { name: "grafana-dashboards", namespace: "monitoring", data_keys: ["cluster-overview.json", "node-exporter.json", "pod-metrics.json", "networking.json"], age: "21d", labels: { app: "grafana" } },
+  { name: "grafana-datasources", namespace: "monitoring", data_keys: ["datasources.yaml"], age: "21d", labels: { app: "grafana" } },
+  { name: "alertmanager-templates", namespace: "monitoring", data_keys: ["slack.tmpl", "email.tmpl"], age: "21d", labels: { app: "alertmanager" } },
+  { name: "fluentd-config", namespace: "logging", data_keys: ["fluent.conf", "kubernetes.conf", "output.conf"], age: "10d", labels: { app: "fluentd" } },
+  { name: "ml-pipeline-config", namespace: "ml", data_keys: ["pipeline.yaml", "hyperparams.json", "feature-config.yaml"], age: "6h", labels: { app: "ml-training" } },
+  { name: "cert-manager-config", namespace: "cert-manager", data_keys: ["config.yaml"], age: "14d", labels: { app: "cert-manager" } },
+  { name: "cluster-info", namespace: "kube-public", data_keys: ["kubeconfig"], age: "30d", labels: {} },
+  { name: "istio-mesh", namespace: "istio-system", data_keys: ["mesh", "meshNetworks"], age: "15d", labels: { app: "istiod" } },
 ]
 
 // ---- SERVICES ----

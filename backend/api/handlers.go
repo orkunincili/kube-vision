@@ -147,3 +147,47 @@ func handleDeployment(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
 		renderJSON(w, deployments)
 	}
 }
+
+func handleConfigMap(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// 1. İsteği doğrula
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		// 2. Mutfaktan (models/service) veriyi iste
+		// BURASI SENİN OBJELERİ ALDIĞIN YER
+		cms, err := models.GetConfigMap(cs, ns)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// 3. Tabakla (JSON olarak sun)
+		renderJSON(w, cms)
+	}
+}
+
+func handleSecret(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// 1. İsteği doğrula
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		// 2. Mutfaktan (models/service) veriyi iste
+		// BURASI SENİN OBJELERİ ALDIĞIN YER
+		secrets, err := models.GetSecret(cs, ns)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// 3. Tabakla (JSON olarak sun)
+		renderJSON(w, secrets)
+	}
+}

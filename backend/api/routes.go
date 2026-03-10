@@ -17,5 +17,7 @@ func SetupRoutes(clientset *kubernetes.Clientset, ns string) *http.ServeMux {
 	mux.HandleFunc("/services", handleServices(clientset, ns))
 	mux.HandleFunc("/deployments", handleDeployment(clientset, ns))
 	mux.HandleFunc("/ingresses", handleIngresses(clientset, ns))
+	mux.HandleFunc("/configmaps", handleConfigMap(clientset, ns))
+	mux.HandleFunc("/secrets", handleSecret(clientset, ns))
 	return mux
 }
