@@ -42,6 +42,24 @@ export async function fetchIngresses() {
   return res.json();
 }
 
+export async function fetchConfigMaps() {
+  const base = process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (!base) throw new Error("NEXT_PUBLIC_BACKEND_URL missing");
+
+  const res = await fetch(`${base}/configmaps`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`configmaps fetch failed: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchSecrets() {
+  const base = process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (!base) throw new Error("NEXT_PUBLIC_BACKEND_URL missing");
+
+  const res = await fetch(`${base}/secrets`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`secrets fetch failed: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchSummary() {
   const base = process.env.NEXT_PUBLIC_BACKEND_URL;
   const res = await fetch(`${base}/summary`, { cache: "no-store" });
@@ -49,20 +67,20 @@ export async function fetchSummary() {
   
   const data = await res.json();
 
-  // Backend'deki map'ten statüleri çekiyoruz (Cards için)
   const getStatus = (statusName: string) => data.pod_status?.[statusName] || 0;
 
   return {
-    
     totalPods: data.pod_count || 0,
     runningPods: getStatus("Running"),
     pendingPods: getStatus("Pending"),
     failedPods: getStatus("Failed") + getStatus("Error") + getStatus("ImagePullBackOff") + getStatus("CrashLoopBackOff") + getStatus("ErrImagePull") + getStatus("CreateContainerConfigError"),
-    
-    totalNodes: data.node.length,
+    totalNodes: data.node?.length || 0,
+    readyNodes: data.node?.filter((n: any) => n.status === "Ready").length || 0,
     node: data.node || [], 
+    namespaces: data.namespaces || [],
     totalServices: data.service_count || 0,
     totalIngresses: data.ingress_count || 0,
-   
+    totalConfigMaps: data.configmap_count || 0,
+    totalSecrets: data.secret_count || 0,
   };
 }
