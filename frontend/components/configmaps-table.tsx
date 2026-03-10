@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { Search, FileText, Loader2, AlertCircle } from "lucide-react"
+import { Search, FileText, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { fetchConfigMaps } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   Table,
@@ -80,6 +81,7 @@ export function ConfigMapsTable() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [nsFilter, setNsFilter] = useState("all")
+  const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const load = async () => {
@@ -111,6 +113,15 @@ export function ConfigMapsTable() {
       return matchesSearch && matchesNs
     })
   }, [configMaps, search, nsFilter])
+
+  const toggleReveal = (key: string) => {
+    setRevealedKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   if (loading) {
     return (
@@ -174,43 +185,70 @@ export function ConfigMapsTable() {
             <TableHead>Data Keys</TableHead>
             <TableHead className="hidden md:table-cell">Labels</TableHead>
             <TableHead className="hidden md:table-cell">Age</TableHead>
+            <TableHead className="w-[50px]" />
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filtered.map((cm) => (
-            <TableRow key={`${cm.namespace}-${cm.name}`}>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="font-mono text-xs truncate max-w-[250px]">{cm.name}</span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline" className="text-[10px]">{cm.namespace}</Badge>
-              </TableCell>
-              <TableCell className="text-xs text-muted-foreground">
-                {cm.data_keys?.length || 0} keys
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <div className="flex flex-wrap gap-1">
-                  {cm.labels && Object.entries(cm.labels).slice(0, 2).map(([k, v]) => (
-                    <code key={k} className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-mono">
-                      {k}={v}
-                    </code>
-                  ))}
-                  {(!cm.labels || Object.keys(cm.labels).length === 0) && (
-                    <span className="text-[11px] text-muted-foreground">-</span>
+          {filtered.map((cm) => {
+            const key = `${cm.namespace}/${cm.name}`
+            const isRevealed = revealedKeys.has(key)
+            return (
+              <TableRow key={key}>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="font-mono text-xs truncate max-w-[250px]">{cm.name}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-[10px]">{cm.namespace}</Badge>
+                </TableCell>
+                <TableCell>
+                  {isRevealed ? (
+                    <div className="flex flex-wrap gap-1">
+                      {cm.data_keys?.map((k) => (
+                        <code key={k} className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-mono">
+                          {k}
+                        </code>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      {cm.data_keys?.length || 0} keys
+                    </span>
                   )}
-                </div>
-              </TableCell>
-              <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
-                {cm.age}
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <div className="flex flex-wrap gap-1">
+                    {cm.labels && Object.entries(cm.labels).slice(0, 2).map(([k, v]) => (
+                      <code key={k} className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-mono">
+                        {k}={v}
+                      </code>
+                    ))}
+                    {(!cm.labels || Object.keys(cm.labels).length === 0) && (
+                      <span className="text-[11px] text-muted-foreground">-</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                  {cm.age}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => toggleReveal(key)}
+                  >
+                    {isRevealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            )
+          })}
           {filtered.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+              <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
                 No configmaps found
               </TableCell>
             </TableRow>
