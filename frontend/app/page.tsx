@@ -75,7 +75,7 @@ export default function KubernetesDashboard() {
                 <LayoutDashboard className="h-3.5 w-3.5" /> Overview
               </TabsTrigger>
               <TabsTrigger value="diagram" className="gap-2 text-xs">
-                <GitBranch className="h-3.5 w-3.5" /> Diagram
+                <GitBranch className="h-3.5 w-3.5" /> Cluster Diagram
               </TabsTrigger>
               <TabsTrigger value="nodes" className="gap-2 text-xs">
                 <Server className="h-3.5 w-3.5" /> Nodes
