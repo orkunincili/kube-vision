@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Search, Eye, EyeOff, KeyRound } from "lucide-react"
-import { type K8sSecret } from "@/lib/k8s-data"
+import { useState, useMemo, useEffect } from "react"
+import { Search, KeyRound, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
+import { fetchSecrets } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,36 +22,56 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+interface K8sSecret {
+  name: string
+  namespace: string
+  type: string
+  data_keys: string[]
+  age: string
+  labels: Record<string, string>
+}
+
 function SecretTypeBadge({ type }: { type: string }) {
   const short = type.replace("kubernetes.io/", "k8s/")
-  const colors: Record<string, string> = {
-    "Opaque": "bg-chart-2/15 text-chart-2 border-chart-2/20",
-    "kubernetes.io/tls": "bg-primary/15 text-primary border-primary/20",
-    "kubernetes.io/service-account-token": "bg-warning/15 text-warning border-warning/20",
-    "kubernetes.io/dockerconfigjson": "bg-chart-4/15 text-chart-4 border-chart-4/20",
-  }
   return (
-    <Badge variant="outline" className={`text-[10px] font-normal ${colors[type] ?? "bg-secondary text-muted-foreground border-border"}`}>
+    <Badge variant="outline" className="text-[10px]">
       {short}
     </Badge>
   )
 }
 
-export function SecretsTable({
-  secrets,
-  namespaces,
-}: {
-  secrets: K8sSecret[]
-  namespaces: string[]
-}) {
+export function SecretsTable() {
+  const [secrets, setSecrets] = useState<K8sSecret[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [nsFilter, setNsFilter] = useState("all")
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set())
 
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true)
+        const data = await fetchSecrets()
+        setSecrets(data || [])
+        setError(null)
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch secrets")
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  const namespaces = useMemo(() => 
+    ["all", ...new Set(secrets.map((s) => s.namespace))], 
+    [secrets]
+  )
+
   const filtered = useMemo(() => {
     return secrets.filter((s) => {
-      const matchesSearch =
-        search === "" || s.name.toLowerCase().includes(search.toLowerCase())
+      const matchesSearch = search === "" || s.name.toLowerCase().includes(search.toLowerCase())
       const matchesNs = nsFilter === "all" || s.namespace === nsFilter
       return matchesSearch && matchesNs
     })
@@ -60,13 +80,31 @@ export function SecretsTable({
   const toggleReveal = (key: string) => {
     setRevealedKeys((prev) => {
       const next = new Set(prev)
-      if (next.has(key)) {
-        next.delete(key)
-      } else {
-        next.add(key)
-      }
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <span className="text-xs text-muted-foreground">Loading Secrets...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
+        <AlertCircle className="h-8 w-8 text-destructive" />
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-destructive">Connection Error</h3>
+          <p className="text-xs text-muted-foreground max-w-[300px]">{error}</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -74,59 +112,59 @@ export function SecretsTable({
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Secrets</h2>
         <p className="text-xs text-muted-foreground">
-          {filtered.length} of {secrets.length} secrets shown
+          {filtered.length} of {secrets.length} secrets
         </p>
       </div>
+      
       <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3">
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative min-w-[200px] flex-1">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search secrets..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-8 pl-9 bg-secondary border-border text-foreground text-xs placeholder:text-muted-foreground"
+            className="h-8 pl-9 text-xs"
           />
         </div>
         <Select value={nsFilter} onValueChange={setNsFilter}>
-          <SelectTrigger className="h-8 w-[160px] bg-secondary border-border text-xs text-foreground">
+          <SelectTrigger className="h-8 w-[160px] text-xs">
             <SelectValue placeholder="Namespace" />
           </SelectTrigger>
-          <SelectContent className="bg-card border-border">
-            <SelectItem value="all">All Namespaces</SelectItem>
-            {namespaces.sort().map((ns) => (
+          <SelectContent>
+            {namespaces.map((ns) => (
               <SelectItem key={ns} value={ns}>
-                {ns}
+                {ns === "all" ? "All Namespaces" : ns}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
+
       <Table>
         <TableHeader>
-          <TableRow className="border-border hover:bg-transparent">
-            <TableHead className="text-muted-foreground">Name</TableHead>
-            <TableHead className="text-muted-foreground">Namespace</TableHead>
-            <TableHead className="text-muted-foreground">Type</TableHead>
-            <TableHead className="text-muted-foreground">Data Keys</TableHead>
-            <TableHead className="text-muted-foreground hidden md:table-cell">Age</TableHead>
-            <TableHead className="text-muted-foreground w-[60px]" />
+          <TableRow className="hover:bg-transparent">
+            <TableHead>Name</TableHead>
+            <TableHead>Namespace</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Data Keys</TableHead>
+            <TableHead className="hidden md:table-cell">Age</TableHead>
+            <TableHead className="w-[50px]" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {filtered.map((secret) => {
-            const isRevealed = revealedKeys.has(`${secret.namespace}/${secret.name}`)
+            const key = `${secret.namespace}/${secret.name}`
+            const isRevealed = revealedKeys.has(key)
             return (
-              <TableRow key={`${secret.namespace}-${secret.name}`} className="border-border">
-                <TableCell className="max-w-[250px] truncate">
+              <TableRow key={key}>
+                <TableCell>
                   <div className="flex items-center gap-2">
                     <KeyRound className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                    <span className="font-mono text-xs text-foreground truncate">{secret.name}</span>
+                    <span className="font-mono text-xs truncate max-w-[250px]">{secret.name}</span>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground border-border">
-                    {secret.namespace}
-                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">{secret.namespace}</Badge>
                 </TableCell>
                 <TableCell>
                   <SecretTypeBadge type={secret.type} />
@@ -134,18 +172,15 @@ export function SecretsTable({
                 <TableCell>
                   {isRevealed ? (
                     <div className="flex flex-wrap gap-1">
-                      {secret.dataKeys.map((key) => (
-                        <code
-                          key={key}
-                          className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-foreground font-mono"
-                        >
-                          {key}
+                      {secret.data_keys?.map((k) => (
+                        <code key={k} className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-mono">
+                          {k}
                         </code>
                       ))}
                     </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">
-                      {secret.dataKeys.length} key{secret.dataKeys.length !== 1 ? "s" : ""}
+                      {secret.data_keys?.length || 0} keys
                     </span>
                   )}
                 </TableCell>
@@ -156,9 +191,8 @@ export function SecretsTable({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                    onClick={() => toggleReveal(`${secret.namespace}/${secret.name}`)}
-                    aria-label={isRevealed ? "Hide data keys" : "Show data keys"}
+                    className="h-7 w-7 p-0"
+                    onClick={() => toggleReveal(key)}
                   >
                     {isRevealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </Button>
@@ -169,7 +203,7 @@ export function SecretsTable({
           {filtered.length === 0 && (
             <TableRow>
               <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                No secrets found matching your filters
+                No secrets found
               </TableCell>
             </TableRow>
           )}
