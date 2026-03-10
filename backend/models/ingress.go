@@ -31,9 +31,8 @@ func GetIngresses(clientset *kubernetes.Clientset, ns string) ([]Ingress, error)
 		}
 
 		var endpoints []string
-		source := "Pending/None" // Varsayılan durum
+		source := "Pending/None"
 
-		// Sadece gerçek LoadBalancer verisi varsa dolduruyoruz
 		for _, lb := range i.Status.LoadBalancer.Ingress {
 			if lb.IP != "" {
 				endpoints = append(endpoints, lb.IP)

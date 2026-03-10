@@ -2,11 +2,13 @@ package models
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 type Node struct {
@@ -21,20 +23,24 @@ type Node struct {
 	TotalPodCount   int      `json:"pod_count"`
 	RunningPodCount int      `json:"running"`
 	OthersPodCount  int      `json:"others"`
+	CpuUsage        int      `json:"cpu_usage_percent"`
+	MemUsage        int      `json:"mem_usage_percent"`
 }
 
 func GetNodes(clientset *kubernetes.Clientset) ([]Node, error) {
 	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
-	podCountByNode, err := PodCountsByNode(clientset)
+
 	if err != nil {
 		return nil, err
 	}
+	podCountByNode, err := PodCountsByNode(clientset)
 	if err != nil {
 		return nil, err
 	}
 	var result []Node
 	for _, node := range nodes.Items {
 		Status, err := GetStatus(node)
+
 		if err != nil {
 			return nil, err
 		}
@@ -43,7 +49,7 @@ func GetNodes(clientset *kubernetes.Clientset) ([]Node, error) {
 			return nil, err
 		}
 		roles := GetNodeRoles(node)
-
+		cpuUsage, memUsage, err := GetNodeUsage(node)
 		newNode := Node{
 			Name:            node.Name,
 			OS:              node.Status.NodeInfo.OSImage,
@@ -56,6 +62,8 @@ func GetNodes(clientset *kubernetes.Clientset) ([]Node, error) {
 			TotalPodCount:   podCountByNode[node.Name]["total"],
 			RunningPodCount: podCountByNode[node.Name]["running"],
 			OthersPodCount:  podCountByNode[node.Name]["others"],
+			CpuUsage:        cpuUsage,
+			MemUsage:        memUsage,
 		}
 		result = append(result, newNode)
 	}
@@ -135,4 +143,38 @@ func PodCountsByNode(clientset *kubernetes.Clientset) (map[string]map[string]int
 	}
 
 	return podCountsByNode, nil
+}
+
+func GetNodeUsage(node v1.Node) (int, int, error) {
+	config := GetClusterConfig()
+	metricsClient, err := metricsv.NewForConfig(config)
+	if err != nil {
+
+		return 0, 0, err
+	}
+	nodeMetric, err := metricsClient.MetricsV1beta1().NodeMetricses().Get(context.TODO(), node.Name, metav1.GetOptions{})
+	if err != nil {
+		fmt.Println("Metrics could not be retrieved! Is Metrics Server installed? Error:", err)
+
+	}
+	cpu := nodeMetric.Usage.Cpu().MilliValue()
+	mem := nodeMetric.Usage.Memory().Value()
+	allocatableCPU := node.Status.Allocatable.Cpu().MilliValue()
+	allocatableMem := node.Status.Allocatable.Memory().Value()
+
+	cpuPerc := 0.0
+	if allocatableCPU > 0 {
+		cpuPerc = (float64(cpu) / float64(allocatableCPU)) * 100
+
+	}
+
+	memPerc := 0.0
+	if allocatableMem > 0 {
+		memPerc = (float64(mem) / float64(allocatableMem)) * 100
+
+	}
+	cpuInt := int(cpuPerc)
+	memInt := int(memPerc)
+	return cpuInt, memInt, nil
+
 }

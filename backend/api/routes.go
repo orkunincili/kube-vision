@@ -9,7 +9,6 @@ import (
 func SetupRoutes(clientset *kubernetes.Clientset, ns string) *http.ServeMux {
 	mux := http.NewServeMux()
 
-	// Handler'ları buraya kaydedeceğiz
 	mux.HandleFunc("/healthz", handleHealthz())
 	mux.HandleFunc("/summary", handleCluster(clientset, ns))
 	mux.HandleFunc("/nodes", handleNodes(clientset))

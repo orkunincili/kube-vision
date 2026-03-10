@@ -17,31 +17,27 @@ type Cluster struct {
 }
 
 func GetClusterSummary(clientset *kubernetes.Clientset, ns string) (*Cluster, error) {
-	// 1. Nodes
+
 	nodes, err := GetNodes(clientset)
 	if err != nil {
 		return nil, fmt.Errorf("nodes hatası: %w", err)
 	}
 
-	// 2. Services
 	serviceCount, err := GetResourceCount(clientset, "", "service")
 	if err != nil {
 		return nil, fmt.Errorf("service count hatası: %w", err)
 	}
 
-	// 3. Ingresses
 	ingressCount, err := GetResourceCount(clientset, "", "ingress")
 	if err != nil {
 		return nil, fmt.Errorf("ingress count hatası: %w", err)
 	}
 
-	// 4. Pods (Hata kontrolünü List'ten hemen sonra yap!)
 	Pods, err := clientset.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("pods listeleme hatası: %w", err)
 	}
 
-	// Artık Pods'un nil olmadığından eminiz, döngüye girebiliriz
 	podStatus := make(map[string]int)
 	for _, pod := range Pods.Items {
 		podStatus[GetPodStatus(pod)]++

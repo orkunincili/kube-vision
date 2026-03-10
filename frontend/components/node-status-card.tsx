@@ -10,13 +10,12 @@ interface NodeInfo {
   roles: string[]
   kubelet_version: string
   os: string
-  arch: string
   cri: string
   pod_count: number
   cpu_capacity?: string
   memory_capacity?: string
   cpu_usage_percent?: number
-  memory_usage_percent?: number
+  mem_usage_percent?: number
 }
 
 function StatusIndicator({ status }: { status: string }) {
@@ -32,8 +31,8 @@ function StatusIndicator({ status }: { status: string }) {
 }
 
 function NodeCard({ node }: { node: NodeInfo }) {
-  const cpuUsage = node.cpu_usage_percent ?? Math.floor(Math.random() * 60) + 20
-  const memUsage = node.memory_usage_percent ?? Math.floor(Math.random() * 70) + 15
+  const cpuUsage = node.cpu_usage_percent 
+  const memUsage = node.mem_usage_percent 
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/5">
@@ -57,21 +56,29 @@ function NodeCard({ node }: { node: NodeInfo }) {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
+        
         <div className="space-y-1.5">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Cpu className="h-3 w-3" />
             <span>CPU</span>
-            <span className="ml-auto font-medium text-foreground">{cpuUsage}%</span>
+            <span className="ml-auto font-medium text-foreground">
+              {cpuUsage != null ? `${cpuUsage}%` : "Unknown"}
+            </span>
           </div>
-          <Progress value={cpuUsage} className="h-1.5" />
+          {/* Değer yoksa progress bar'ı %0 gösteriyoruz veya tamamen gizleyebilirsin */}
+          <Progress value={cpuUsage ?? 0} className="h-1.5" />
         </div>
+
+     
         <div className="space-y-1.5">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <MemoryStick className="h-3 w-3" />
             <span>Memory</span>
-            <span className="ml-auto font-medium text-foreground">{memUsage}%</span>
+            <span className="ml-auto font-medium text-foreground">
+              {memUsage != null ? `${memUsage}%` : "Unknown"}
+            </span>
           </div>
-          <Progress value={memUsage} className="h-1.5" />
+          <Progress value={memUsage ?? 0} className="h-1.5" />
         </div>
       </div>
 
@@ -86,7 +93,7 @@ function NodeCard({ node }: { node: NodeInfo }) {
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">OS / Arch</p>
-          <code className="text-xs font-medium text-foreground">{node.os} / {node.arch}</code>
+          <code className="text-xs font-medium text-foreground">{node.os}</code>
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Pods</p>
