@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
-import { Search, Loader2, AlertCircle, Layers } from "lucide-react"
-import { fetchDeployments } from "@/lib/api" // lib/api.ts içinde tanımlı olduğunu varsayıyoruz
+import { useState, useMemo } from "react"
+import { Search } from "lucide-react"
+import { fetchDeployments } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
@@ -21,6 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
+import { useApiResource } from "@/hooks/use-api-resource"
+import { ResourceErrorState, ResourceLoadingState } from "@/components/resource-state"
 
 export interface K8sDeployment {
   name: string
@@ -31,27 +33,10 @@ export interface K8sDeployment {
 }
 
 export function DeploymentsTable() {
-  const [deployments, setDeployments] = useState<K8sDeployment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [nsFilter, setNsFilter] = useState("all")
-
-  useEffect(() => {
-    const loadDeployments = async () => {
-      try {
-        setLoading(true)
-        const data = await fetchDeployments()
-        setDeployments(data)
-        setError(null)
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch deployments")
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadDeployments()
-  }, [])
+  const { data, loading, error } = useApiResource<K8sDeployment[]>(fetchDeployments)
+  const deployments = data ?? []
 
   const namespaces = useMemo(() => ["all", ...new Set(deployments.map((d) => d.namespace))], [deployments])
 
@@ -64,17 +49,11 @@ export function DeploymentsTable() {
   }, [deployments, search, nsFilter])
 
   if (loading) return (
-    <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card">
-      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      <span className="text-xs text-muted-foreground">Loading Deployments...</span>
-    </div>
+    <ResourceLoadingState message="Loading Deployments..." />
   )
 
   if (error) return (
-    <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 text-destructive">
-      <AlertCircle className="h-8 w-8" />
-      <p className="text-xs font-medium">{error}</p>
-    </div>
+    <ResourceErrorState message={error} />
   )
 
   return (

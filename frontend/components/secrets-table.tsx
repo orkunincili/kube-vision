@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
-import { Search, KeyRound, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
+import { useState, useMemo } from "react"
+import { Search, KeyRound, Eye, EyeOff } from "lucide-react"
 import { fetchSecrets } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useApiResource } from "@/hooks/use-api-resource"
+import { ResourceErrorState, ResourceLoadingState } from "@/components/resource-state"
 
 interface K8sSecret {
   name: string
@@ -30,65 +32,6 @@ interface K8sSecret {
   age: string
   labels: Record<string, string>
 }
-
-const MOCK_SECRETS: K8sSecret[] = [
-  {
-    name: "db-credentials",
-    namespace: "default",
-    type: "Opaque",
-    data_keys: ["username", "password", "host", "port"],
-    age: "30d",
-    labels: { app: "backend", component: "database" },
-  },
-  {
-    name: "tls-certificate",
-    namespace: "ingress-nginx",
-    type: "kubernetes.io/tls",
-    data_keys: ["tls.crt", "tls.key"],
-    age: "90d",
-    labels: { app: "ingress", type: "tls" },
-  },
-  {
-    name: "docker-registry",
-    namespace: "default",
-    type: "kubernetes.io/dockerconfigjson",
-    data_keys: [".dockerconfigjson"],
-    age: "60d",
-    labels: { type: "registry" },
-  },
-  {
-    name: "api-keys",
-    namespace: "default",
-    type: "Opaque",
-    data_keys: ["stripe-key", "sendgrid-key", "aws-access-key", "aws-secret-key"],
-    age: "15d",
-    labels: { app: "backend", component: "integrations" },
-  },
-  {
-    name: "jwt-secret",
-    namespace: "default",
-    type: "Opaque",
-    data_keys: ["secret", "refresh-secret"],
-    age: "45d",
-    labels: { app: "auth", component: "jwt" },
-  },
-  {
-    name: "default-token-abc123",
-    namespace: "kube-system",
-    type: "kubernetes.io/service-account-token",
-    data_keys: ["token", "ca.crt", "namespace"],
-    age: "120d",
-    labels: {},
-  },
-  {
-    name: "grafana-admin",
-    namespace: "monitoring",
-    type: "Opaque",
-    data_keys: ["admin-user", "admin-password"],
-    age: "15d",
-    labels: { app: "grafana", release: "monitoring" },
-  },
-]
 
 function SecretTypeBadge({ type }: { type: string }) {
   const short = type.replace("kubernetes.io/", "k8s/")
@@ -100,30 +43,11 @@ function SecretTypeBadge({ type }: { type: string }) {
 }
 
 export function SecretsTable() {
-  const [secrets, setSecrets] = useState<K8sSecret[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [nsFilter, setNsFilter] = useState("all")
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set())
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true)
-        const data = await fetchSecrets()
-        setSecrets(data || [])
-        setError(null)
-      } catch (err: any) {
-        // Use mock data when API fails
-        setSecrets(MOCK_SECRETS)
-        setError(null)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+  const { data, loading, error } = useApiResource<K8sSecret[]>(fetchSecrets)
+  const secrets = data ?? []
 
   const namespaces = useMemo(() => 
     ["all", ...new Set(secrets.map((s) => s.namespace))], 
@@ -148,24 +72,11 @@ export function SecretsTable() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <span className="text-xs text-muted-foreground">Loading Secrets...</span>
-      </div>
-    )
+    return <ResourceLoadingState message="Loading Secrets..." />
   }
 
   if (error) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
-        <AlertCircle className="h-8 w-8 text-destructive" />
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-destructive">Connection Error</h3>
-          <p className="text-xs text-muted-foreground max-w-[300px]">{error}</p>
-        </div>
-      </div>
-    )
+    return <ResourceErrorState message={error} />
   }
 
   return (

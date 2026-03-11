@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
-import { Search, Loader2, AlertCircle } from "lucide-react"
+import { useState, useMemo } from "react"
+import { Search } from "lucide-react"
 import { fetchPods } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -20,8 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useApiResource } from "@/hooks/use-api-resource"
+import { ResourceErrorState, ResourceLoadingState } from "@/components/resource-state"
 
-// API'den dönen Go Struct yapısıyla birebir uyumlu Tip Tanımı
 export interface K8sPod {
   name: string
   namespace: string
@@ -56,33 +57,12 @@ function PodStatusBadge({ status }: { status: string }) {
 }
 
 export function PodsTable() {
-  const [pods, setPods] = useState<K8sPod[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [nsFilter, setNsFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
+  const { data, loading, error } = useApiResource<K8sPod[]>(fetchPods)
+  const pods = data ?? []
 
-  // API'den veri çekme işlemi
-  useEffect(() => {
-    const loadPods = async () => {
-      try {
-        setLoading(true)
-        const data = await fetchPods()
-        setPods(data)
-        setError(null)
-      } catch (err: any) {
-        console.error("Pod fetch error:", err)
-        setError(err.message || "Failed to connect to backend")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadPods()
-  }, [])
-
-  // Gelen veriden dinamik olarak Namespace ve Status listelerini çıkarıyoruz
   const namespaces = useMemo(() => ["all", ...new Set(pods.map((p) => p.namespace))], [pods])
   const statuses = useMemo(() => ["all", ...new Set(pods.map((p) => p.status))], [pods])
 
@@ -96,24 +76,11 @@ export function PodsTable() {
   }, [pods, search, nsFilter, statusFilter])
 
   if (loading) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <span className="text-xs">Connecting to Cluster...</span>
-      </div>
-    )
+    return <ResourceLoadingState message="Connecting to Cluster..." />
   }
 
   if (error) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
-        <AlertCircle className="h-8 w-8 text-destructive" />
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-destructive">Connection Error</h3>
-          <p className="text-xs text-muted-foreground max-w-[300px]">{error}</p>
-        </div>
-      </div>
-    )
+    return <ResourceErrorState message={error} />
   }
 
   return (

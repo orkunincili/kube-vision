@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
-import { Search, FileText, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
+import { useState, useMemo } from "react"
+import { Search, FileText, Eye, EyeOff } from "lucide-react"
 import { fetchConfigMaps } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useApiResource } from "@/hooks/use-api-resource"
+import { ResourceErrorState, ResourceLoadingState } from "@/components/resource-state"
 
 interface K8sConfigMap {
   name: string
@@ -30,76 +32,12 @@ interface K8sConfigMap {
   labels: Record<string, string>
 }
 
-const MOCK_CONFIGMAPS: K8sConfigMap[] = [
-  {
-    name: "app-config",
-    namespace: "default",
-    data_keys: ["APP_ENV", "LOG_LEVEL", "API_URL"],
-    age: "5d",
-    labels: { app: "frontend", env: "production" },
-  },
-  {
-    name: "nginx-config",
-    namespace: "ingress-nginx",
-    data_keys: ["nginx.conf", "mime.types"],
-    age: "30d",
-    labels: { app: "nginx", component: "controller" },
-  },
-  {
-    name: "coredns",
-    namespace: "kube-system",
-    data_keys: ["Corefile"],
-    age: "120d",
-    labels: { "k8s-app": "kube-dns" },
-  },
-  {
-    name: "prometheus-config",
-    namespace: "monitoring",
-    data_keys: ["prometheus.yml", "alerts.yml", "rules.yml"],
-    age: "15d",
-    labels: { app: "prometheus", release: "monitoring" },
-  },
-  {
-    name: "grafana-dashboards",
-    namespace: "monitoring",
-    data_keys: ["kubernetes.json", "node-exporter.json", "pods.json"],
-    age: "15d",
-    labels: { app: "grafana", dashboard: "true" },
-  },
-  {
-    name: "redis-config",
-    namespace: "default",
-    data_keys: ["redis.conf", "sentinel.conf"],
-    age: "10d",
-    labels: { app: "redis", tier: "cache" },
-  },
-]
-
 export function ConfigMapsTable() {
-  const [configMaps, setConfigMaps] = useState<K8sConfigMap[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [nsFilter, setNsFilter] = useState("all")
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set())
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true)
-        const data = await fetchConfigMaps()
-        setConfigMaps(data || [])
-        setError(null)
-      } catch (err: any) {
-        // Use mock data when API fails
-        setConfigMaps(MOCK_CONFIGMAPS)
-        setError(null)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+  const { data, loading, error } = useApiResource<K8sConfigMap[]>(fetchConfigMaps)
+  const configMaps = data ?? []
 
   const namespaces = useMemo(() => 
     ["all", ...new Set(configMaps.map((cm) => cm.namespace))], 
@@ -124,24 +62,11 @@ export function ConfigMapsTable() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <span className="text-xs text-muted-foreground">Loading ConfigMaps...</span>
-      </div>
-    )
+    return <ResourceLoadingState message="Loading ConfigMaps..." />
   }
 
   if (error) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
-        <AlertCircle className="h-8 w-8 text-destructive" />
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-destructive">Connection Error</h3>
-          <p className="text-xs text-muted-foreground max-w-[300px]">{error}</p>
-        </div>
-      </div>
-    )
+    return <ResourceErrorState message={error} />
   }
 
   return (

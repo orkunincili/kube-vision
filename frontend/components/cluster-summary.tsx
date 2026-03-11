@@ -1,18 +1,5 @@
 import { Server, Box, ShieldAlert, KeyRound, FileText, Network, Globe } from "lucide-react"
-
-interface SummaryData {
-  totalNodes: number
-  readyNodes: number
-  totalPods: number
-  runningPods: number
-  failedPods: number
-  pendingPods: number
-  totalSecrets: number
-  totalConfigMaps: number
-  totalServices: number
-  totalIngresses: number
-  namespaces: string[]
-}
+import type { SummaryData } from "@/lib/types"
 
 function SummaryCard({
   icon: Icon,

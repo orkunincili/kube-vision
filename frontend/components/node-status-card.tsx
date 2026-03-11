@@ -1,22 +1,9 @@
 "use client"
 
-import { Server, Cpu, HardDrive, MemoryStick } from "lucide-react"
+import { Server, Cpu, MemoryStick } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-
-interface NodeInfo {
-  name: string
-  status: string
-  roles: string[]
-  kubelet_version: string
-  os: string
-  cri: string
-  pod_count: number
-  cpu_capacity?: string
-  memory_capacity?: string
-  cpu_usage_percent?: number
-  mem_usage_percent?: number
-}
+import type { NodeInfo } from "@/lib/types"
 
 function StatusIndicator({ status }: { status: string }) {
   const isReady = status === "Ready"
@@ -65,7 +52,6 @@ function NodeCard({ node }: { node: NodeInfo }) {
               {cpuUsage != null ? `${cpuUsage}%` : "Unknown"}
             </span>
           </div>
-          {/* Değer yoksa progress bar'ı %0 gösteriyoruz veya tamamen gizleyebilirsin */}
           <Progress value={cpuUsage ?? 0} className="h-1.5" />
         </div>
 

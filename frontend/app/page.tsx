@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { 
   Server, Box, KeyRound, LayoutDashboard, FileText, 
   Network, Globe, Loader2, Layers 
@@ -16,29 +16,16 @@ import { ConfigMapsTable } from "@/components/configmaps-table"
 import { ServicesTable } from "@/components/services-table"
 import { IngressTable } from "@/components/ingress-table"
 import { NodeStatusCard } from "@/components/node-status-card"
+import { Button } from "@/components/ui/button"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchSummary } from "@/lib/api"
+import { useApiResource } from "@/hooks/use-api-resource"
+import type { SummaryData } from "@/lib/types"
 
 export default function KubernetesDashboard() {
-  const [data, setData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
-
-  useEffect(() => {
-    async function load() {
-      setLoading(true)
-      try {
-        const result = await fetchSummary()
-        setData(result)
-      } catch (err) {
-        console.error("Dashboard load error:", err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [refreshKey])
+  const { data, loading } = useApiResource<SummaryData>(fetchSummary, [refreshKey])
 
   if (loading) return (
     <div className="flex h-screen w-full flex-col items-center justify-center gap-3 bg-background">
@@ -52,12 +39,12 @@ export default function KubernetesDashboard() {
       <div className="max-w-md space-y-4">
         <h2 className="text-xl font-bold">Connection Failed</h2>
         <p className="text-muted-foreground">Unable to connect to backend API.</p>
-        <button 
+        <Button
           onClick={() => setRefreshKey(k => k + 1)}
-          className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+          size="sm"
         >
           Retry
-        </button>
+        </Button>
       </div>
     </div>
   )

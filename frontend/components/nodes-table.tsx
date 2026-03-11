@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import {
   Table,
@@ -11,12 +10,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { fetchNodes } from "@/lib/api"
+import { useApiResource } from "@/hooks/use-api-resource"
+import { ResourceErrorState } from "@/components/resource-state"
+import type { NodeInfo } from "@/lib/types"
 
-// UI şu an K8sNode type'ına göre yazılmış ama
-// "ne geliyorsa bas" istediğin için burada any kullanıyoruz.
-type AnyNode = any
-
-function StatusDot({ status }: { status: any }) {
+function StatusDot({ status }: { status: string }) {
   const s = String(status ?? "")
   const color =
     s === "Ready"
@@ -44,33 +42,12 @@ function StatusDot({ status }: { status: any }) {
 }
 
 export function NodesTable() {
-  const [nodes, setNodes] = useState<AnyNode[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, loading, error } = useApiResource<NodeInfo[]>(fetchNodes)
+  const nodes = data ?? []
 
-  useEffect(() => {
-    let cancelled = false
-
-    ;(async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const data = await fetchNodes()
-        if (!cancelled) setNodes(Array.isArray(data) ? data : [])
-      } catch (e: any) {
-        if (!cancelled) {
-          setNodes([])
-          setError(e?.message ?? "nodes fetch failed")
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  if (error && nodes.length === 0) {
+    return <ResourceErrorState message={error} />
+  }
 
   return (
     <div className="rounded-lg border border-border bg-card">
@@ -126,7 +103,7 @@ export function NodesTable() {
               <TableCell>
                 <div className="flex flex-wrap gap-1">
                   {Array.isArray(node?.roles) && node.roles.length > 0 ? (
-                    node.roles.map((role: any) => (
+                    node.roles.map((role) => (
                       <Badge
                         key={String(role)}
                         variant="secondary"

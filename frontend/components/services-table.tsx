@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
-import { Search, Network, Loader2, AlertCircle } from "lucide-react"
-import { fetchServices } from "@/lib/api" // api.ts içindeki fonksiyonu çağırıyoruz
+import { useState, useMemo } from "react"
+import { Search, Network } from "lucide-react"
+import { fetchServices } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
@@ -20,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useApiResource } from "@/hooks/use-api-resource"
+import { ResourceErrorState, ResourceLoadingState } from "@/components/resource-state"
 
 export interface K8sService {
   name: string
@@ -45,33 +47,12 @@ function ServiceTypeBadge({ type }: { type: string }) {
 }
 
 export function ServicesTable() {
-  const [services, setServices] = useState<K8sService[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [nsFilter, setNsFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
+  const { data, loading, error } = useApiResource<K8sService[]>(fetchServices)
+  const services = data ?? []
 
-  // API'den veri çekme işlemi
-  useEffect(() => {
-    const loadServices = async () => {
-      try {
-        setLoading(true)
-        const data = await fetchServices()
-        setServices(data)
-        setError(null)
-      } catch (err: any) {
-        console.error("Service fetch error:", err)
-        setError(err.message || "Failed to fetch services")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadServices()
-  }, [])
-
-  // Dinamik filtre seçenekleri
   const namespaces = useMemo(() => ["all", ...new Set(services.map((s) => s.namespace))], [services])
   const types = useMemo(() => ["all", ...new Set(services.map((s) => s.type))], [services])
 
@@ -85,24 +66,11 @@ export function ServicesTable() {
   }, [services, search, nsFilter, typeFilter])
 
   if (loading) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <span className="text-xs">Fetching Services...</span>
-      </div>
-    )
+    return <ResourceLoadingState message="Fetching Services..." />
   }
 
   if (error) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
-        <AlertCircle className="h-8 w-8 text-destructive" />
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-destructive">API Error</h3>
-          <p className="text-xs text-muted-foreground max-w-[300px]">{error}</p>
-        </div>
-      </div>
-    )
+    return <ResourceErrorState message={error} />
   }
 
   return (
@@ -184,7 +152,6 @@ export function ServicesTable() {
                 {svc.cluster_ip}
               </TableCell>
               <TableCell className="font-mono text-[11px] text-foreground">
-                {/* Obje hatasını önlemek için güvenli render */}
                 {typeof svc.ports === "string" ? svc.ports : JSON.stringify(svc.ports)}
               </TableCell>
               <TableCell className="hidden md:table-cell font-mono text-[11px]">
