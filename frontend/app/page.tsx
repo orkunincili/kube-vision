@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { 
-  Server, Box, KeyRound, LayoutDashboard, FileText, 
+  Server, Box, LayoutDashboard, FileText, 
   Network, Globe, Loader2, Layers 
 } from "lucide-react"
 
@@ -11,7 +11,6 @@ import { ClusterSummary } from "@/components/cluster-summary"
 import { NodesTable } from "@/components/nodes-table"
 import { PodsTable } from "@/components/pods-table"
 import { DeploymentsTable } from "@/components/deployments-table"
-import { SecretsTable } from "@/components/secrets-table"
 import { ConfigMapsTable } from "@/components/configmaps-table"
 import { ServicesTable } from "@/components/services-table"
 import { IngressTable } from "@/components/ingress-table"
@@ -79,9 +78,6 @@ export default function KubernetesDashboard() {
               <TabsTrigger value="configmaps" className="gap-2 text-xs">
                 <FileText className="h-3.5 w-3.5" /> ConfigMaps
               </TabsTrigger>
-              <TabsTrigger value="secrets" className="gap-2 text-xs">
-                <KeyRound className="h-3.5 w-3.5" /> Secrets
-              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
@@ -95,7 +91,6 @@ export default function KubernetesDashboard() {
             <TabsContent value="services"><ServicesTable /></TabsContent>
             <TabsContent value="ingress"><IngressTable /></TabsContent>
             <TabsContent value="configmaps"><ConfigMapsTable /></TabsContent>
-            <TabsContent value="secrets"><SecretsTable /></TabsContent>
 
           </Tabs>
         </div>

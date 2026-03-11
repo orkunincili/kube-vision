@@ -1,4 +1,4 @@
-import { Server, Box, ShieldAlert, KeyRound, FileText, Network, Globe } from "lucide-react"
+import { Server, Box, ShieldAlert, FileText, Network, Globe } from "lucide-react"
 import type { SummaryData } from "@/lib/types"
 
 function SummaryCard({
@@ -71,11 +71,6 @@ export function ClusterSummary({ data }: { data: SummaryData }) {
         icon={FileText}
         label="ConfigMaps"
         value={data.totalConfigMaps}
-      />
-      <SummaryCard
-        icon={KeyRound}
-        label="Secrets"
-        value={data.totalSecrets}
       />
     </div>
   )

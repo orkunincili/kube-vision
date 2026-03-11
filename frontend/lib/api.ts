@@ -4,7 +4,6 @@ import type {
   IngressInfo,
   NodeInfo,
   PodInfo,
-  SecretInfo,
   ServiceInfo,
   SummaryData,
 } from "@/lib/types"
@@ -49,10 +48,6 @@ export function fetchConfigMaps(): Promise<ConfigMapInfo[]> {
   return fetchFromApi("/configmaps", "configmaps")
 }
 
-export function fetchSecrets(): Promise<SecretInfo[]> {
-  return fetchFromApi("/secrets", "secrets")
-}
-
 export async function fetchSummary(): Promise<SummaryData> {
   const data = await fetchFromApi<any>("/summary", "summary")
   const getStatus = (statusName: string) => data.pod_status?.[statusName] || 0
@@ -75,6 +70,5 @@ export async function fetchSummary(): Promise<SummaryData> {
     totalServices: data.service_count || 0,
     totalIngresses: data.ingress_count || 0,
     totalConfigMaps: data.configmap_count || 0,
-    totalSecrets: data.secret_count || 0,
   }
 }

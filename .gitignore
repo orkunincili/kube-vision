@@ -1,54 +1,48 @@
-# v0 runtime files
-__v0_runtime_loader.js
-__v0_devtools.tsx
-__v0_jsx-dev-runtime.ts
-
-# ---- OS / IDE ----
+# OS / IDE
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
 *.swp
+*.swo
 
-# ---- Secrets ----
+# Environment files
 .env
 .env.*
 !.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
 
-# ---- Go (backend) ----
-backend/bin/
-backend/dist/
-backend/*.exe
-backend/*.out
-backend/*.test
-backend/vendor/
-backend/coverage.*
-backend/*.log
-
-# Go workspace / tooling
-backend/go.work
-backend/go.work.sum
-
-# Ignore your experiments
-backend/lab/
-
-# Ignore toolchain archives you accidentally drop in
-backend/*.tar.gz
-
-# ---- Node / Next (frontend) ----
+# Frontend
 frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/.turbo/
 frontend/.swc/
+frontend/coverage/
 frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
 frontend/pnpm-debug.log*
+frontend/tsconfig.tsbuildinfo
 
-# TypeScript build info
-frontend/*.tsbuildinfo
+# Backend
+backend/bin/
+backend/dist/
+backend/vendor/
+backend/coverage/
+backend/coverage.*
+backend/*.exe
+backend/*.out
+backend/*.test
+backend/*.log
+backend/go.work
+backend/go.work.sum
 
-# ---- Misc ----
+# Temp
 tmp/
 *.tmp

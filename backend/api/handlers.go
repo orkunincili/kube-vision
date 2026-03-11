@@ -169,24 +169,3 @@ func handleConfigMap(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
 		renderJSON(w, cms)
 	}
 }
-
-func handleSecret(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-
-		ctx, cancel := newRequestContext(r.Context())
-		defer cancel()
-		secrets, err := models.GetSecret(ctx, cs, ns)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		renderJSON(w, secrets)
-	}
-}

@@ -15,7 +15,6 @@ type Cluster struct {
 	ServiceCount   int            `json:"service_count"`
 	IngressCount   int            `json:"ingress_count"`
 	ConfigMapCount int            `json:"configmap_count"`
-	SecretCount    int            `json:"secret_count"`
 }
 
 func GetClusterSummary(
@@ -49,11 +48,6 @@ func GetClusterSummary(
 		return nil, fmt.Errorf("failed to list configmaps: %w", err)
 	}
 
-	secretCount, err := clientset.CoreV1().Secrets(ns).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list secrets: %w", err)
-	}
-
 	podStatus := make(map[string]int)
 	for _, pod := range pods.Items {
 		podStatus[GetPodStatus(pod)]++
@@ -66,7 +60,6 @@ func GetClusterSummary(
 		ServiceCount:   len(serviceCount.Items),
 		IngressCount:   len(ingressCount.Items),
 		ConfigMapCount: len(configMapCount.Items),
-		SecretCount:    len(secretCount.Items),
 	}
 
 	return summary, nil

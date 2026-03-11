@@ -24,7 +24,6 @@ export interface SummaryData {
   totalServices: number
   totalIngresses: number
   totalConfigMaps: number
-  totalSecrets: number
 }
 
 export interface PodInfo {
@@ -70,15 +69,6 @@ export interface IngressInfo {
 export interface ConfigMapInfo {
   name: string
   namespace: string
-  data_keys: string[]
-  age: string
-  labels: Record<string, string>
-}
-
-export interface SecretInfo {
-  name: string
-  namespace: string
-  type: string
   data_keys: string[]
   age: string
   labels: Record<string, string>
