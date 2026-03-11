@@ -31,6 +31,6 @@ go run main.go
 The frontend provides a modern web interface to visualize your cluster data.
 ```bash
 cd frontend
-npm install   # Install dependencies
-npm run dev   # Start development server
+pnpm install   # Install dependencies
+pnpm run dev   # Start development server
 ```
