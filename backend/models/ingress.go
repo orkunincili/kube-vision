@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -15,8 +14,8 @@ type Ingress struct {
 	AddressSource string   `json:"address_source"`
 }
 
-func GetIngresses(clientset *kubernetes.Clientset, ns string) ([]Ingress, error) {
-	ingList, err := clientset.NetworkingV1().Ingresses(ns).List(context.TODO(), metav1.ListOptions{})
+func GetIngresses(ctx context.Context, clientset *kubernetes.Clientset, ns string) ([]Ingress, error) {
+	ingList, err := clientset.NetworkingV1().Ingresses(ns).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

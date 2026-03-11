@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -15,9 +14,9 @@ type Deployment struct {
 	Available       int32  `json:"available_replicas"`
 }
 
-func GetDeployments(clientset *kubernetes.Clientset, ns string) ([]Deployment, error) {
+func GetDeployments(ctx context.Context, clientset *kubernetes.Clientset, ns string) ([]Deployment, error) {
 
-	deps, err := clientset.AppsV1().Deployments(ns).List(context.TODO(), metav1.ListOptions{})
+	deps, err := clientset.AppsV1().Deployments(ns).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -19,43 +18,43 @@ type Pod struct {
 	Age             string `json:"age"`
 }
 
-func GetPods(clientset *kubernetes.Clientset, ns string) ([]Pod, error) {
-	Pods, err := clientset.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{})
+func GetPods(ctx context.Context, clientset *kubernetes.Clientset, ns string) ([]Pod, error) {
+	pods, err := clientset.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	var result []Pod
 
-	for _, pod := range Pods.Items {
-		readyContainers, err := GetPodContainerStatus(pod)
-		podAge, err := GetAge(pod.CreationTimestamp)
+	for _, p := range pods.Items {
+		readyContainers := GetPodContainerStatus(p)
+		podAge, err := GetAge(p.CreationTimestamp)
 		if err != nil {
 			return nil, err
 		}
-		NewPod := Pod{
-			Name:            pod.Name,
-			Namespace:       pod.Namespace,
-			Status:          GetPodStatus(pod),
-			HostIP:          pod.Status.HostIP,
-			Containers:      len(pod.Spec.Containers),
+		newPod := Pod{
+			Name:            p.Name,
+			Namespace:       p.Namespace,
+			Status:          GetPodStatus(p),
+			HostIP:          p.Status.HostIP,
+			Containers:      len(p.Spec.Containers),
 			ReadyContainers: readyContainers,
-			NodeName:        pod.Spec.NodeName,
+			NodeName:        p.Spec.NodeName,
 			Age:             podAge,
 		}
-		result = append(result, NewPod)
+		result = append(result, newPod)
 	}
 	return result, nil
 }
 
-func GetPodContainerStatus(pod v1.Pod) (int, error) {
+func GetPodContainerStatus(pod v1.Pod) int {
 	readyContainers := 0
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		if containerStatus.Ready {
 			readyContainers++
 		}
 	}
-	return readyContainers, nil
+	return readyContainers
 }
 
 func GetPodStatus(pod v1.Pod) string {

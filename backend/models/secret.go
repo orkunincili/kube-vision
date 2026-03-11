@@ -17,9 +17,9 @@ type Secret struct {
 	Age       string   `json:"age"`
 }
 
-func GetSecret(clientset *kubernetes.Clientset, ns string) ([]Secret, error) {
+func GetSecret(ctx context.Context, clientset *kubernetes.Clientset, ns string) ([]Secret, error) {
 
-	secrets, err := clientset.CoreV1().Secrets(ns).List(context.TODO(), metav1.ListOptions{})
+	secrets, err := clientset.CoreV1().Secrets(ns).List(ctx, metav1.ListOptions{})
 
 	if err != nil {
 		return nil, err
@@ -27,17 +27,17 @@ func GetSecret(clientset *kubernetes.Clientset, ns string) ([]Secret, error) {
 
 	var result []Secret
 
-	for _, secret := range secrets.Items {
-		age, err := GetAge(secret.CreationTimestamp)
+	for _, s := range secrets.Items {
+		age, err := GetAge(s.CreationTimestamp)
 		if err != nil {
 			return nil, err
 		}
 
 		newSecret := Secret{
-			Name:      secret.Name,
-			Namespace: secret.Namespace,
-			DataKeys:  slices.Collect(maps.Keys(secret.Data)),
-			Type:      string(secret.Type),
+			Name:      s.Name,
+			Namespace: s.Namespace,
+			DataKeys:  slices.Collect(maps.Keys(s.Data)),
+			Type:      string(s.Type),
 			Age:       age,
 		}
 		result = append(result, newSecret)

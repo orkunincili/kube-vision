@@ -15,40 +15,34 @@ type Service struct {
 	Namespace  string `json:"namespace"`
 	Type       string `json:"type"`
 	Ports      string `json:"ports"`
-	CLusterIP  string `json:"cluster_ip"`
+	ClusterIP  string `json:"cluster_ip"`
 	ExternalIP string `json:"external_ip"`
 }
 
-func GetServices(clientset *kubernetes.Clientset, ns string) ([]Service, error) {
-	Services, err := clientset.CoreV1().Services(ns).List(context.TODO(), metav1.ListOptions{})
+func GetServices(ctx context.Context, clientset *kubernetes.Clientset, ns string) ([]Service, error) {
+	services, err := clientset.CoreV1().Services(ns).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	var result []Service
-	for _, service := range Services.Items {
-		ClusterIP, ExternalIP, err := GetIP(service)
-		if err != nil {
-			return nil, err
+	for _, s := range services.Items {
+		clusterIP, externalIP := GetIP(s)
+		ports := GetPorts(s)
+		newService := Service{
+			Name:       s.Name,
+			Namespace:  s.Namespace,
+			Type:       string(s.Spec.Type),
+			ClusterIP:  clusterIP,
+			ExternalIP: externalIP,
+			Ports:      ports,
 		}
-		Ports, err := GetPorts(service)
-		if err != nil {
-			return nil, err
-		}
-		NewSvc := Service{
-			Name:       service.Name,
-			Namespace:  service.Namespace,
-			Type:       string(service.Spec.Type),
-			CLusterIP:  ClusterIP,
-			ExternalIP: ExternalIP,
-			Ports:      Ports,
-		}
-		result = append(result, NewSvc)
+		result = append(result, newService)
 
 	}
 	return result, nil
 }
-func GetPorts(svc v1.Service) (string, error) {
+func GetPorts(svc v1.Service) string {
 	var allPorts []string
 
 	for _, port := range svc.Spec.Ports {
@@ -62,10 +56,10 @@ func GetPorts(svc v1.Service) (string, error) {
 		allPorts = append(allPorts, current)
 	}
 
-	return strings.Join(allPorts, ", "), nil
+	return strings.Join(allPorts, ", ")
 
 }
-func GetIP(svc v1.Service) (string, string, error) {
+func GetIP(svc v1.Service) (string, string) {
 
 	externalIP := "None"
 	if svc.Spec.Type == "LoadBalancer" {
@@ -79,6 +73,6 @@ func GetIP(svc v1.Service) (string, string, error) {
 
 	}
 
-	return svc.Spec.ClusterIP, externalIP, nil
+	return svc.Spec.ClusterIP, externalIP
 
 }

@@ -27,41 +27,37 @@ type Node struct {
 	MemUsage        int      `json:"mem_usage_percent"`
 }
 
-func GetNodes(clientset *kubernetes.Clientset) ([]Node, error) {
-	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+func GetNodes(ctx context.Context, clientset *kubernetes.Clientset) ([]Node, error) {
+	nodes, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 
 	if err != nil {
 		return nil, err
 	}
-	podCountByNode, err := PodCountsByNode(clientset)
+	podCountByNode, err := PodCountsByNode(ctx, clientset)
 	if err != nil {
 		return nil, err
 	}
 	var result []Node
-	for _, node := range nodes.Items {
-		Status, err := GetStatus(node)
-
+	for _, n := range nodes.Items {
+		status := GetStatus(n)
+		hostname, internalIP := GetIPAndHostname(n)
+		roles := GetNodeRoles(n)
+		cpuUsage, memUsage, err := GetNodeUsage(ctx, n)
 		if err != nil {
 			return nil, err
 		}
-		Hostname, InternalIP, err := GetIPAndHostname(node)
-		if err != nil {
-			return nil, err
-		}
-		roles := GetNodeRoles(node)
-		cpuUsage, memUsage, err := GetNodeUsage(node)
 		newNode := Node{
-			Name:            node.Name,
-			OS:              node.Status.NodeInfo.OSImage,
-			Status:          Status,
-			IP:              InternalIP,
-			Hostname:        Hostname,
+			Name:            n.Name,
+			OS:              n.Status.NodeInfo.OSImage,
+			Status:          status,
+			IP:              internalIP,
+			Hostname:        hostname,
 			Roles:           roles,
-			CRI:             node.Status.NodeInfo.ContainerRuntimeVersion,
-			KubeletVersion:  node.Status.NodeInfo.KubeletVersion,
-			TotalPodCount:   podCountByNode[node.Name]["total"],
-			RunningPodCount: podCountByNode[node.Name]["running"],
-			OthersPodCount:  podCountByNode[node.Name]["others"],
+			CRI:             n.Status.NodeInfo.ContainerRuntimeVersion,
+			KubeletVersion:  n.Status.NodeInfo.KubeletVersion,
+			TotalPodCount:   podCountByNode[n.Name]["total"],
+			RunningPodCount: podCountByNode[n.Name]["running"],
+			OthersPodCount:  podCountByNode[n.Name]["others"],
 			CpuUsage:        cpuUsage,
 			MemUsage:        memUsage,
 		}
@@ -69,7 +65,7 @@ func GetNodes(clientset *kubernetes.Clientset) ([]Node, error) {
 	}
 	return result, nil
 }
-func GetIPAndHostname(node v1.Node) (string, string, error) {
+func GetIPAndHostname(node v1.Node) (string, string) {
 	var hostname, internalIP string
 
 	for _, addr := range node.Status.Addresses {
@@ -80,22 +76,21 @@ func GetIPAndHostname(node v1.Node) (string, string, error) {
 			internalIP = addr.Address
 		}
 	}
-	return hostname, internalIP, nil
+	return hostname, internalIP
 }
-func GetStatus(node v1.Node) (string, error) {
+func GetStatus(node v1.Node) string {
 
 	for _, condition := range node.Status.Conditions {
 
 		if condition.Type == "Ready" {
 			if condition.Status == "True" {
-				return "Ready", nil
-			} else {
-				return "NotReady", nil
+				return "Ready"
 			}
+			return "NotReady"
 		}
 	}
 
-	return "Unknown", nil
+	return "Unknown"
 
 }
 func GetNodeRoles(node v1.Node) []string {
@@ -110,16 +105,15 @@ func GetNodeRoles(node v1.Node) []string {
 	}
 
 	if len(roles) == 0 {
-		roles = append(roles, "worker")
+		roles = append(roles, "None")
 		return roles
 	}
 
 	return roles
 }
 
-func PodCountsByNode(clientset *kubernetes.Clientset) (map[string]map[string]int, error) {
-
-	podList, err := clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
+func PodCountsByNode(ctx context.Context, clientset *kubernetes.Clientset) (map[string]map[string]int, error) {
+	podList, err := clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 
 		return nil, err
@@ -145,16 +139,16 @@ func PodCountsByNode(clientset *kubernetes.Clientset) (map[string]map[string]int
 	return podCountsByNode, nil
 }
 
-func GetNodeUsage(node v1.Node) (int, int, error) {
+func GetNodeUsage(ctx context.Context, node v1.Node) (int, int, error) {
 	config := GetClusterConfig()
 	metricsClient, err := metricsv.NewForConfig(config)
 	if err != nil {
 
 		return 0, 0, err
 	}
-	nodeMetric, err := metricsClient.MetricsV1beta1().NodeMetricses().Get(context.TODO(), node.Name, metav1.GetOptions{})
+	nodeMetric, err := metricsClient.MetricsV1beta1().NodeMetricses().Get(ctx, node.Name, metav1.GetOptions{})
 	if err != nil {
-		fmt.Println("Metrics could not be retrieved! Is Metrics Server installed? Error:", err)
+		fmt.Println("Metrics could not be retrieved. Is Metrics Server installed? Error:", err)
 
 	}
 	cpu := nodeMetric.Usage.Cpu().MilliValue()

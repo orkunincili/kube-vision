@@ -1,11 +1,19 @@
 package api
 
 import (
+	"context"
 	"kube-vision-backend/models"
 	"net/http"
+	"time"
 
 	"k8s.io/client-go/kubernetes"
 )
+
+const requestTimeout = 5 * time.Second
+
+func newRequestContext(parent context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(parent, requestTimeout)
+}
 
 func handleHealthz() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +34,9 @@ func handleCluster(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
 			return
 		}
 
-		cluster, err := models.GetClusterSummary(cs, ns)
+		ctx, cancel := newRequestContext(r.Context())
+		defer cancel()
+		cluster, err := models.GetClusterSummary(ctx, cs, ns)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -45,7 +55,9 @@ func handleNodes(cs *kubernetes.Clientset) http.HandlerFunc {
 			return
 		}
 
-		nodes, err := models.GetNodes(cs)
+		ctx, cancel := newRequestContext(r.Context())
+		defer cancel()
+		nodes, err := models.GetNodes(ctx, cs)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -63,7 +75,9 @@ func handlePods(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
 			return
 		}
 
-		pods, err := models.GetPods(cs, ns)
+		ctx, cancel := newRequestContext(r.Context())
+		defer cancel()
+		pods, err := models.GetPods(ctx, cs, ns)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -81,7 +95,9 @@ func handleServices(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
 			return
 		}
 
-		services, err := models.GetServices(cs, ns)
+		ctx, cancel := newRequestContext(r.Context())
+		defer cancel()
+		services, err := models.GetServices(ctx, cs, ns)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -99,7 +115,9 @@ func handleIngresses(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
 			return
 		}
 
-		ingresses, err := models.GetIngresses(cs, ns)
+		ctx, cancel := newRequestContext(r.Context())
+		defer cancel()
+		ingresses, err := models.GetIngresses(ctx, cs, ns)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -118,7 +136,9 @@ func handleDeployment(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
 			return
 		}
 
-		deployments, err := models.GetDeployments(cs, ns)
+		ctx, cancel := newRequestContext(r.Context())
+		defer cancel()
+		deployments, err := models.GetDeployments(ctx, cs, ns)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -137,7 +157,9 @@ func handleConfigMap(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
 			return
 		}
 
-		cms, err := models.GetConfigMap(cs, ns)
+		ctx, cancel := newRequestContext(r.Context())
+		defer cancel()
+		cms, err := models.GetConfigMap(ctx, cs, ns)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -156,7 +178,9 @@ func handleSecret(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
 			return
 		}
 
-		secrets, err := models.GetSecret(cs, ns)
+		ctx, cancel := newRequestContext(r.Context())
+		defer cancel()
+		secrets, err := models.GetSecret(ctx, cs, ns)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

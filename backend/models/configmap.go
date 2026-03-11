@@ -17,9 +17,9 @@ type ConfigMap struct {
 	Age       string            `json:"age"`
 }
 
-func GetConfigMap(clientset *kubernetes.Clientset, ns string) ([]ConfigMap, error) {
+func GetConfigMap(ctx context.Context, clientset *kubernetes.Clientset, ns string) ([]ConfigMap, error) {
 
-	cms, err := clientset.CoreV1().ConfigMaps(ns).List(context.TODO(), metav1.ListOptions{})
+	cms, err := clientset.CoreV1().ConfigMaps(ns).List(ctx, metav1.ListOptions{})
 
 	if err != nil {
 		return nil, err

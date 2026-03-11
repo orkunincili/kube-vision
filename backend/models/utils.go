@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"log"
 	"strconv"
 	"time"
@@ -9,6 +10,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+const requestTimeout = 5 * time.Second
 
 func GetAge(CreationTimestamp metav1.Time) (string, error) {
 
@@ -19,6 +22,14 @@ func GetAge(CreationTimestamp metav1.Time) (string, error) {
 		return strconv.Itoa(days) + "d", nil
 	}
 	return duration.Round(time.Second).String(), nil
+}
+
+func NewRequestContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), requestTimeout)
+}
+
+func NewTimeoutContext(parent context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(parent, requestTimeout)
 }
 
 func GetClusterConfig() *rest.Config {
