@@ -10,6 +10,12 @@
 
 
 ## 🛠️ Installation & Setup
+```
+kubectl create ns kube-vision
+kubectl apply -f https://raw.githubusercontent.com/orkunincili/kube-vision/refs/heads/main/kube-vision-manifest.yaml
+```
+
+## 🛠️ Development 
 
 Follow these steps to get the project up and running on your local machine.
 
