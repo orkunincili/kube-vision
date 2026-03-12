@@ -11,10 +11,9 @@
 
 ## 🛠️ Installation & Setup
 ```
-kubectl create ns kube-vision
-kubectl apply -f https://raw.githubusercontent.com/orkunincili/kube-vision/refs/heads/main/kube-vision-manifest.yaml
+kubectl apply -f https://raw.githubusercontent.com/orkunincili/kube-vision/refs/heads/main/kube-vision-base.yaml
 ```
-
+You can access the ingress and httproute examples from the example-routes directory.
 ## 🛠️ Development 
 
 Follow these steps to get the project up and running on your local machine.
