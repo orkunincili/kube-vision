@@ -32,10 +32,18 @@ func NewTimeoutContext(parent context.Context) (context.Context, context.CancelF
 	return context.WithTimeout(parent, requestTimeout)
 }
 
-func GetClusterConfig() *rest.Config {
-	config, err := clientcmd.BuildConfigFromFlags("", clientcmd.RecommendedHomeFile)
-	if err != nil {
-		log.Fatalf("Config error: %v", err)
+func loadKubeConfig() (*rest.Config, error) {
+	config, err := rest.InClusterConfig()
+	if err == nil {
+		log.Println("Using in-cluster Kubernetes config")
+		return config, nil
 	}
-	return config
+
+	config, err = clientcmd.BuildConfigFromFlags("", clientcmd.RecommendedHomeFile)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println("Using local kubeconfig")
+	return config, nil
 }
