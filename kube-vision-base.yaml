@@ -1,4 +1,9 @@
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-vision
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: kube-vision
@@ -10,20 +15,35 @@ metadata:
   name: kube-vision-readonly
 rules:
   - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: [""]
-    resources: ["pods", "services", "configmaps"]
-    verbs: ["get", "list", "watch"]
+    resources:
+      - nodes
+      - pods
+      - services
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
   - apiGroups: ["apps"]
-    resources: ["deployments"]
-    verbs: ["get", "list", "watch"]
+    resources:
+      - deployments
+    verbs:
+      - get
+      - list
+      - watch
   - apiGroups: ["networking.k8s.io"]
-    resources: ["ingresses"]
-    verbs: ["get", "list", "watch"]
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
   - apiGroups: ["metrics.k8s.io"]
-    resources: ["nodes"]
-    verbs: ["get", "list", "watch"]
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -57,7 +77,7 @@ spec:
       containers:
         - name: backend
           image: orkunincili/kube-vision-be:v0.0.2
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           readinessProbe:
             httpGet:
               path: /healthz
@@ -70,24 +90,17 @@ spec:
               port: 8080
             initialDelaySeconds: 15
             periodSeconds: 20
-          resources:
-            requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
-              cpu: 500m
-              memory: 512Mi
         - name: frontend
           image: orkunincili/kube-vision-fe:v0.0.1
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: BACKEND_INTERNAL_URL
+              value: http://127.0.0.1:8080
+            - name: PORT
+              value: "3000"
           ports:
             - containerPort: 3000
               name: http-frontend
-          env:
-            - name: BACKEND_INTERNAL_URL
-              value: "http://127.0.0.1:8080"
-            - name: PORT
-              value: "3000"
           readinessProbe:
             httpGet:
               path: /
@@ -100,13 +113,6 @@ spec:
               port: 3000
             initialDelaySeconds: 15
             periodSeconds: 20
-          resources:
-            requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
-              cpu: 500m
-              memory: 512Mi
 ---
 apiVersion: v1
 kind: Service
@@ -120,23 +126,3 @@ spec:
     - name: http
       port: 80
       targetPort: 3000
-  type: ClusterIP
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: kube-vision
-  namespace: kube-vision
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: kube-vision.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: kube-vision
-                port:
-                  number: 80

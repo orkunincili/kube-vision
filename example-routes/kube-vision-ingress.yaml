@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kube-vision
+  namespace: kube-vision
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: kube-vision.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kube-vision
+                port:
+                  number: 80

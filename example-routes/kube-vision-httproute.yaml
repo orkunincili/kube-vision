@@ -1,0 +1,19 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kube-vision
+  namespace: kube-vision
+spec:
+  parentRefs:
+    - name: kube-vision-gateway
+      namespace: default
+  hostnames:
+    - kube-vision.local
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: kube-vision
+          port: 80
