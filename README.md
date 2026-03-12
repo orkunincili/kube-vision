@@ -6,7 +6,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.2-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
 [![Status](https://img.shields.io/badge/Status-In--Development-orange)]()
 
-**Kube-Vision** is a basic, unfinished Kubernetes Dashboard for personal use and learning Golang.
+**Kube-Vision** is a basic and developing Kubernetes dashboard designed for personal use and Golang learning.
 
 
 ## 🛠️ Installation & Setup
