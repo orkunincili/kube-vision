@@ -1,0 +1,142 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-vision
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube-vision-readonly
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-vision-readonly
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-vision-readonly
+subjects:
+  - kind: ServiceAccount
+    name: kube-vision
+    namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-vision
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kube-vision
+  template:
+    metadata:
+      labels:
+        app: kube-vision
+    spec:
+      serviceAccountName: kube-vision
+      containers:
+        - name: backend
+          image: orkunincili/kube-vision-be:v0.0.2
+          imagePullPolicy: Always
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+        - name: frontend
+          image: orkunincili/kube-vision-fe:v0.0.1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http-frontend
+          env:
+            - name: BACKEND_INTERNAL_URL
+              value: "http://127.0.0.1:8080"
+            - name: PORT
+              value: "3000"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-vision
+  namespace: default
+spec:
+  selector:
+    app: kube-vision
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kube-vision
+  namespace: default
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: kube-vision.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kube-vision
+                port:
+                  number: 80

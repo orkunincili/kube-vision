@@ -1,0 +1,10 @@
+.git
+.gitignore
+bin/
+dist/
+coverage/
+coverage.*
+*.log
+*.out
+*.test
+vendor/

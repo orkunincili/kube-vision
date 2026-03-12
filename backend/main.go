@@ -4,6 +4,7 @@ import (
 	"kube-vision-backend/api"
 	"log"
 	"net/http"
+	"os"
 
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/kubernetes"
@@ -23,8 +24,13 @@ func main() {
 
 	router := api.SetupRoutes(clientset, "")
 
-	log.Println("Server is starting port 8080...")
-	err = http.ListenAndServe(":8080", router)
+	addr := os.Getenv("LISTEN_ADDR")
+	if addr == "" {
+		addr = ":8080"
+	}
+
+	log.Printf("Server is starting on %s...", addr)
+	err = http.ListenAndServe(addr, router)
 	if err != nil {
 		log.Fatal(err)
 	}

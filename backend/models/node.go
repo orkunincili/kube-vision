@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
@@ -140,7 +141,10 @@ func PodCountsByNode(ctx context.Context, clientset *kubernetes.Clientset) (map[
 }
 
 func GetNodeUsage(ctx context.Context, node v1.Node) (int, int, error) {
-	config := GetClusterConfig()
+	config, err := loadKubeConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 	metricsClient, err := metricsv.NewForConfig(config)
 	if err != nil {
 

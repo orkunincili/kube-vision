@@ -8,16 +8,8 @@ import type {
   SummaryData,
 } from "@/lib/types"
 
-function getBaseUrl() {
-  const base = process.env.NEXT_PUBLIC_BACKEND_URL
-  if (!base) {
-    throw new Error("NEXT_PUBLIC_BACKEND_URL missing")
-  }
-  return base
-}
-
 async function fetchFromApi<T>(path: string, errorLabel: string) {
-  const res = await fetch(`${getBaseUrl()}${path}`, { cache: "no-store" })
+  const res = await fetch(`/api${path}`, { cache: "no-store" })
   if (!res.ok) {
     throw new Error(`${errorLabel} fetch failed: ${res.status}`)
   }
