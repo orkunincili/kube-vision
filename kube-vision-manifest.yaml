@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: kube-vision
-  namespace: default
+  namespace: kube-vision
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -36,13 +36,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: kube-vision
-    namespace: default
+    namespace: kube-vision
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kube-vision
-  namespace: default
+  namespace: kube-vision
 spec:
   replicas: 1
   selector:
@@ -112,7 +112,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: kube-vision
-  namespace: default
+  namespace: kube-vision
 spec:
   selector:
     app: kube-vision
@@ -126,7 +126,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: kube-vision
-  namespace: default
+  namespace: kube-vision
 spec:
   ingressClassName: nginx
   rules:
