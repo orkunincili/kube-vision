@@ -1,7 +1,7 @@
 package api
 
 import (
-	"context"
+	"kube-vision-backend/cache"
 	"kube-vision-backend/models"
 	"net/http"
 	"time"
@@ -11,9 +11,7 @@ import (
 
 const requestTimeout = 5 * time.Second
 
-func newRequestContext(parent context.Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(parent, requestTimeout)
-}
+var globalCache = cache.NewResponseCache()
 
 func handleHealthz() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -97,14 +95,11 @@ func handleServices(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
 
 		ctx, cancel := newRequestContext(r.Context())
 		defer cancel()
-		services, err := models.GetServices(ctx, cs, ns)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		renderJSON(w, services)
+		cacheKey := "services"
+		ttl := 60 * time.Second
+		renderCachedJSON(w, cacheKey, ttl, func() (interface{}, error) {
+			return models.GetServices(ctx, cs, ns)
+		})
 	}
 }
 func handleIngresses(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
@@ -117,14 +112,11 @@ func handleIngresses(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
 
 		ctx, cancel := newRequestContext(r.Context())
 		defer cancel()
-		ingresses, err := models.GetIngresses(ctx, cs, ns)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		renderJSON(w, ingresses)
+		cacheKey := "ingresses"
+		ttl := 60 * time.Second
+		renderCachedJSON(w, cacheKey, ttl, func() (interface{}, error) {
+			return models.GetIngresses(ctx, cs, ns)
+		})
 	}
 }
 
@@ -138,14 +130,11 @@ func handleDeployment(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
 
 		ctx, cancel := newRequestContext(r.Context())
 		defer cancel()
-		deployments, err := models.GetDeployments(ctx, cs, ns)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		renderJSON(w, deployments)
+		cacheKey := "deployments"
+		ttl := 60 * time.Second
+		renderCachedJSON(w, cacheKey, ttl, func() (interface{}, error) {
+			return models.GetDeployments(ctx, cs, ns)
+		})
 	}
 }
 
@@ -159,13 +148,10 @@ func handleConfigMap(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
 
 		ctx, cancel := newRequestContext(r.Context())
 		defer cancel()
-		cms, err := models.GetConfigMap(ctx, cs, ns)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		renderJSON(w, cms)
+		cacheKey := "configmaps"
+		ttl := 60 * time.Second
+		renderCachedJSON(w, cacheKey, ttl, func() (interface{}, error) {
+			return models.GetConfigMap(ctx, cs, ns)
+		})
 	}
 }
