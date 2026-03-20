@@ -9,7 +9,7 @@ import type {
 } from "@/lib/types"
 
 async function fetchFromApi<T>(path: string, errorLabel: string) {
-  const res = await fetch(`/api${path}`, { cache: "no-store" })
+  const res = await fetch(`/api/v1${path}`, { cache: "no-store" })
   if (!res.ok) {
     throw new Error(`${errorLabel} fetch failed: ${res.status}`)
   }
