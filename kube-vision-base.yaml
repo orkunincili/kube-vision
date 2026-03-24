@@ -76,7 +76,7 @@ spec:
       serviceAccountName: kube-vision
       containers:
         - name: backend
-          image: orkunincili/kube-vision-be:v0.0.2
+          image: orkunincili/kube-vision-be:v0.1.0
           imagePullPolicy: IfNotPresent
           readinessProbe:
             httpGet:
@@ -91,7 +91,7 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 20
         - name: frontend
-          image: orkunincili/kube-vision-fe:v0.0.1
+          image: orkunincili/kube-vision-fe:v0.1.0
           imagePullPolicy: IfNotPresent
           env:
             - name: BACKEND_INTERNAL_URL
