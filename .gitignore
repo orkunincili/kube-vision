@@ -31,6 +31,7 @@ frontend/pnpm-debug.log*
 frontend/tsconfig.tsbuildinfo
 
 # Backend
+backend/lab/
 backend/bin/
 backend/dist/
 backend/vendor/
