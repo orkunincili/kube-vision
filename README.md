@@ -11,7 +11,7 @@
 
 ## 🛠️ Installation & Setup
 ```
-kubectl apply -f https://raw.githubusercontent.com/orkunincili/kube-vision/refs/heads/main/kube-vision-base.yaml
+kubectl apply -f https://raw.githubusercontent.com/orkunincili/kube-vision/refs/heads/development/kube-vision-base.yaml
 ```
 You can access the ingress and httproute examples from the example-routes directory.
 ## 🛠️ Development 
