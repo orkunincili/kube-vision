@@ -1,13 +1,11 @@
 package models
 
 import (
-	"context"
-	"fmt"
+	"reflect"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"fmt"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type Service struct {
@@ -19,30 +17,25 @@ type Service struct {
 	ExternalIP string `json:"external_ip"`
 }
 
-func GetServices(ctx context.Context, clientset *kubernetes.Clientset, ns string) ([]Service, error) {
-	services, err := clientset.CoreV1().Services(ns).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
+func BuildService(service *corev1.Service) Service {
+	clusterIP, externalIP := GetIP(service)
+	ports := GetPorts(service)
 
-	var result []Service
-	for _, s := range services.Items {
-		clusterIP, externalIP := GetIP(s)
-		ports := GetPorts(s)
-		newService := Service{
-			Name:       s.Name,
-			Namespace:  s.Namespace,
-			Type:       string(s.Spec.Type),
-			ClusterIP:  clusterIP,
-			ExternalIP: externalIP,
-			Ports:      ports,
-		}
-		result = append(result, newService)
-
+	return Service{
+		Name:       service.Name,
+		Namespace:  service.Namespace,
+		Type:       string(service.Spec.Type),
+		ClusterIP:  clusterIP,
+		ExternalIP: externalIP,
+		Ports:      ports,
 	}
-	return result, nil
 }
-func GetPorts(svc v1.Service) string {
+
+func EqualService(oldService, newService *corev1.Service) bool {
+	return reflect.DeepEqual(BuildService(oldService), BuildService(newService))
+}
+
+func GetPorts(svc *corev1.Service) string {
 	var allPorts []string
 
 	for _, port := range svc.Spec.Ports {
@@ -57,10 +50,9 @@ func GetPorts(svc v1.Service) string {
 	}
 
 	return strings.Join(allPorts, ", ")
-
 }
-func GetIP(svc v1.Service) (string, string) {
 
+func GetIP(svc *corev1.Service) (string, string) {
 	externalIP := "None"
 	if svc.Spec.Type == "LoadBalancer" {
 		for _, ingress := range svc.Status.LoadBalancer.Ingress {
@@ -70,9 +62,7 @@ func GetIP(svc v1.Service) (string, string) {
 				externalIP += ", " + ingress.IP
 			}
 		}
-
 	}
 
 	return svc.Spec.ClusterIP, externalIP
-
 }

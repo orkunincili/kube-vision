@@ -1,12 +1,11 @@
 package models
 
 import (
-	"context"
 	"maps"
+	"reflect"
 	"slices"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type ConfigMap struct {
@@ -17,30 +16,19 @@ type ConfigMap struct {
 	Age       string            `json:"age"`
 }
 
-func GetConfigMap(ctx context.Context, clientset *kubernetes.Clientset, ns string) ([]ConfigMap, error) {
+func BuildConfigMap(cm *corev1.ConfigMap) ConfigMap {
+	dataKeys := slices.Collect(maps.Keys(cm.Data))
+	slices.Sort(dataKeys)
 
-	cms, err := clientset.CoreV1().ConfigMaps(ns).List(ctx, metav1.ListOptions{})
-
-	if err != nil {
-		return nil, err
+	return ConfigMap{
+		Name:      cm.Name,
+		Namespace: cm.Namespace,
+		DataKeys:  dataKeys,
+		Labels:    maps.Clone(cm.Labels),
+		Age:       GetAge(cm.CreationTimestamp),
 	}
+}
 
-	var result []ConfigMap
-
-	for _, cm := range cms.Items {
-		age, err := GetAge(cm.CreationTimestamp)
-		if err != nil {
-			return nil, err
-		}
-
-		newConfigMap := ConfigMap{
-			Name:      cm.Name,
-			Namespace: cm.Namespace,
-			DataKeys:  slices.Collect(maps.Keys(cm.Data)),
-			Labels:    cm.Labels,
-			Age:       age,
-		}
-		result = append(result, newConfigMap)
-	}
-	return result, nil
+func EqualConfigMap(oldConfigMap, newConfigMap *corev1.ConfigMap) bool {
+	return reflect.DeepEqual(BuildConfigMap(oldConfigMap), BuildConfigMap(newConfigMap))
 }

@@ -1,9 +1,9 @@
 package models
 
 import (
-	"context"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"reflect"
+
+	appsv1 "k8s.io/api/apps/v1"
 )
 
 type Deployment struct {
@@ -14,28 +14,21 @@ type Deployment struct {
 	Available       int32  `json:"available_replicas"`
 }
 
-func GetDeployments(ctx context.Context, clientset *kubernetes.Clientset, ns string) ([]Deployment, error) {
-
-	deps, err := clientset.AppsV1().Deployments(ns).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, err
+func BuildDeployment(deploy *appsv1.Deployment) Deployment {
+	var desired int32
+	if deploy.Spec.Replicas != nil {
+		desired = *deploy.Spec.Replicas
 	}
 
-	var result []Deployment
-	for _, d := range deps.Items {
-		var desired int32
-		if d.Spec.Replicas != nil {
-			desired = *d.Spec.Replicas
-		}
-
-		newDep := Deployment{
-			Name:            d.Name,
-			Namespace:       d.Namespace,
-			DesiredReplicas: desired,
-			ReadyReplicas:   d.Status.ReadyReplicas,
-			Available:       d.Status.AvailableReplicas,
-		}
-		result = append(result, newDep)
+	return Deployment{
+		Name:            deploy.Name,
+		Namespace:       deploy.Namespace,
+		DesiredReplicas: desired,
+		ReadyReplicas:   deploy.Status.ReadyReplicas,
+		Available:       deploy.Status.AvailableReplicas,
 	}
-	return result, nil
+}
+
+func EqualDeployment(oldDeploy, newDeploy *appsv1.Deployment) bool {
+	return reflect.DeepEqual(BuildDeployment(oldDeploy), BuildDeployment(newDeploy))
 }

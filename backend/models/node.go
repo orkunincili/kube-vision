@@ -1,72 +1,50 @@
 package models
 
 import (
-	"context"
-	"fmt"
-	"log"
+	"reflect"
+	"slices"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type Node struct {
-	Name            string   `json:"name"`
-	OS              string   `json:"os"`
-	Status          string   `json:"status"`
-	IP              string   `json:"ip"`
-	Hostname        string   `json:"hostname"`
-	Roles           []string `json:"roles"`
-	CRI             string   `json:"cri"`
-	KubeletVersion  string   `json:"kubelet_version"`
-	TotalPodCount   int      `json:"pod_count"`
-	RunningPodCount int      `json:"running"`
-	OthersPodCount  int      `json:"others"`
-	CpuUsage        int      `json:"cpu_usage_percent"`
-	MemUsage        int      `json:"mem_usage_percent"`
+	Name           string                    `json:"name"`
+	OS             string                    `json:"os"`
+	Status         string                    `json:"status"`
+	IP             string                    `json:"ip"`
+	Hostname       string                    `json:"hostname"`
+	Roles          []string                  `json:"roles"`
+	CRI            string                    `json:"cri"`
+	KubeletVersion string                    `json:"kubelet_version"`
+	NodePodStats   map[string]map[string]int `json:"node_pod_stats"`
+	CpuUsage       int                       `json:"cpu_usage_percent"`
+	MemUsage       int                       `json:"mem_usage_percent"`
 }
 
-func GetNodes(ctx context.Context, clientset *kubernetes.Clientset) ([]Node, error) {
-	nodes, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+func BuildNode(node *corev1.Node, nodePodStats map[string]map[string]int) Node {
+	status := GetStatus(node)
+	hostname, internalIP := GetIPAndHostname(node)
+	roles := GetNodeRoles(node)
 
-	if err != nil {
-		return nil, err
+	return Node{
+		Name:           node.Name,
+		OS:             node.Status.NodeInfo.OSImage,
+		Status:         status,
+		IP:             internalIP,
+		Hostname:       hostname,
+		Roles:          roles,
+		CRI:            node.Status.NodeInfo.ContainerRuntimeVersion,
+		KubeletVersion: node.Status.NodeInfo.KubeletVersion,
+		NodePodStats:   nodePodStats,
 	}
-	podCountByNode, err := PodCountsByNode(ctx, clientset)
-	if err != nil {
-		return nil, err
-	}
-	var result []Node
-	for _, n := range nodes.Items {
-		status := GetStatus(n)
-		hostname, internalIP := GetIPAndHostname(n)
-		roles := GetNodeRoles(n)
-		cpuUsage, memUsage, err := GetNodeUsage(ctx, n)
-		if err != nil {
-			return nil, err
-		}
-		newNode := Node{
-			Name:            n.Name,
-			OS:              n.Status.NodeInfo.OSImage,
-			Status:          status,
-			IP:              internalIP,
-			Hostname:        hostname,
-			Roles:           roles,
-			CRI:             n.Status.NodeInfo.ContainerRuntimeVersion,
-			KubeletVersion:  n.Status.NodeInfo.KubeletVersion,
-			TotalPodCount:   podCountByNode[n.Name]["total"],
-			RunningPodCount: podCountByNode[n.Name]["running"],
-			OthersPodCount:  podCountByNode[n.Name]["others"],
-			CpuUsage:        cpuUsage,
-			MemUsage:        memUsage,
-		}
-		result = append(result, newNode)
-	}
-	return result, nil
 }
-func GetIPAndHostname(node v1.Node) (string, string) {
+
+func EqualNode(oldNode, newNode *corev1.Node, nodePodStats map[string]map[string]int) bool {
+	return reflect.DeepEqual(BuildNode(oldNode, nodePodStats), BuildNode(newNode, nodePodStats))
+}
+
+func GetIPAndHostname(node *corev1.Node) (string, string) {
 	var hostname, internalIP string
 
 	for _, addr := range node.Status.Addresses {
@@ -79,10 +57,9 @@ func GetIPAndHostname(node v1.Node) (string, string) {
 	}
 	return hostname, internalIP
 }
-func GetStatus(node v1.Node) string {
 
+func GetStatus(node *corev1.Node) string {
 	for _, condition := range node.Status.Conditions {
-
 		if condition.Type == "Ready" {
 			if condition.Status == "True" {
 				return "Ready"
@@ -92,13 +69,12 @@ func GetStatus(node v1.Node) string {
 	}
 
 	return "Unknown"
-
 }
-func GetNodeRoles(node v1.Node) []string {
+
+func GetNodeRoles(node *corev1.Node) []string {
 	roles := []string{}
 
 	for label := range node.Labels {
-
 		if strings.HasPrefix(label, "node-role.kubernetes.io/") {
 			role := strings.Split(label, "/")[1]
 			roles = append(roles, role)
@@ -107,72 +83,8 @@ func GetNodeRoles(node v1.Node) []string {
 
 	if len(roles) == 0 {
 		roles = append(roles, "None")
-		return roles
 	}
 
+	slices.Sort(roles)
 	return roles
-}
-
-func PodCountsByNode(ctx context.Context, clientset *kubernetes.Clientset) (map[string]map[string]int, error) {
-	podList, err := clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
-	if err != nil {
-
-		return nil, err
-	}
-
-	podCountsByNode := make(map[string]map[string]int)
-
-	for _, p := range podList.Items {
-
-		if p.Spec.NodeName != "" {
-			if podCountsByNode[p.Spec.NodeName] == nil {
-				podCountsByNode[p.Spec.NodeName] = make(map[string]int)
-			}
-			podCountsByNode[p.Spec.NodeName]["total"]++
-			if GetPodStatus(p) == "Running" {
-				podCountsByNode[p.Spec.NodeName]["running"]++
-			} else {
-				podCountsByNode[p.Spec.NodeName]["others"]++
-			}
-		}
-	}
-
-	return podCountsByNode, nil
-}
-
-func GetNodeUsage(ctx context.Context, node v1.Node) (int, int, error) {
-	config, err := loadKubeConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-	metricsClient, err := metricsv.NewForConfig(config)
-	if err != nil {
-
-		return 0, 0, err
-	}
-	nodeMetric, err := metricsClient.MetricsV1beta1().NodeMetricses().Get(ctx, node.Name, metav1.GetOptions{})
-	if err != nil {
-		fmt.Println("Metrics could not be retrieved. Is Metrics Server installed? Error:", err)
-
-	}
-	cpu := nodeMetric.Usage.Cpu().MilliValue()
-	mem := nodeMetric.Usage.Memory().Value()
-	allocatableCPU := node.Status.Allocatable.Cpu().MilliValue()
-	allocatableMem := node.Status.Allocatable.Memory().Value()
-
-	cpuPerc := 0.0
-	if allocatableCPU > 0 {
-		cpuPerc = (float64(cpu) / float64(allocatableCPU)) * 100
-
-	}
-
-	memPerc := 0.0
-	if allocatableMem > 0 {
-		memPerc = (float64(mem) / float64(allocatableMem)) * 100
-
-	}
-	cpuInt := int(cpuPerc)
-	memInt := int(memPerc)
-	return cpuInt, memInt, nil
-
 }

@@ -1,157 +1,94 @@
 package api
 
 import (
-	"kube-vision-backend/cache"
-	"kube-vision-backend/models"
+	"kube-vision-backend/store"
 	"net/http"
-	"time"
-
-	"k8s.io/client-go/kubernetes"
 )
-
-const requestTimeout = 5 * time.Second
-
-var globalCache = cache.NewResponseCache()
 
 func handleHealthz() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 
-		renderJSON(w, "ok")
-	}
-}
-func handleCluster(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-
-		ctx, cancel := newRequestContext(r.Context())
-		defer cancel()
-		cluster, err := models.GetClusterSummary(ctx, cs, ns)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		renderJSON(w, cluster)
+		renderJSON(w, map[string]string{"status": "ok"})
 	}
 }
 
-func handleNodes(cs *kubernetes.Clientset) http.HandlerFunc {
+func handleCluster(clusterStore *store.ClusterStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 
-		ctx, cancel := newRequestContext(r.Context())
-		defer cancel()
-		nodes, err := models.GetNodes(ctx, cs)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		renderJSON(w, nodes)
-	}
-}
-func handlePods(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-
-		ctx, cancel := newRequestContext(r.Context())
-		defer cancel()
-		pods, err := models.GetPods(ctx, cs, ns)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		renderJSON(w, pods)
-	}
-}
-func handleServices(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-
-		ctx, cancel := newRequestContext(r.Context())
-		defer cancel()
-		cacheKey := "services"
-		ttl := 60 * time.Second
-		renderCachedJSON(w, cacheKey, ttl, func() (interface{}, error) {
-			return models.GetServices(ctx, cs, ns)
-		})
-	}
-}
-func handleIngresses(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-
-		ctx, cancel := newRequestContext(r.Context())
-		defer cancel()
-		cacheKey := "ingresses"
-		ttl := 60 * time.Second
-		renderCachedJSON(w, cacheKey, ttl, func() (interface{}, error) {
-			return models.GetIngresses(ctx, cs, ns)
-		})
+		renderJSON(w, store.GetClusterSummary(clusterStore))
 	}
 }
 
-func handleDeployment(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
+func handleNodes(clusterStore *store.ClusterStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 
-		ctx, cancel := newRequestContext(r.Context())
-		defer cancel()
-		cacheKey := "deployments"
-		ttl := 60 * time.Second
-		renderCachedJSON(w, cacheKey, ttl, func() (interface{}, error) {
-			return models.GetDeployments(ctx, cs, ns)
-		})
+		renderJSON(w, clusterStore.Get("nodes"))
 	}
 }
 
-func handleConfigMap(cs *kubernetes.Clientset, ns string) http.HandlerFunc {
+func handlePods(clusterStore *store.ClusterStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 
-		ctx, cancel := newRequestContext(r.Context())
-		defer cancel()
-		cacheKey := "configmaps"
-		ttl := 60 * time.Second
-		renderCachedJSON(w, cacheKey, ttl, func() (interface{}, error) {
-			return models.GetConfigMap(ctx, cs, ns)
-		})
+		renderJSON(w, clusterStore.Get("pods"))
+	}
+}
+
+func handleServices(clusterStore *store.ClusterStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		renderJSON(w, clusterStore.Get("services"))
+	}
+}
+
+func handleIngresses(clusterStore *store.ClusterStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		renderJSON(w, clusterStore.Get("ingresses"))
+	}
+}
+
+func handleDeployment(clusterStore *store.ClusterStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		renderJSON(w, clusterStore.Get("deployments"))
+	}
+}
+
+func handleConfigMap(clusterStore *store.ClusterStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		renderJSON(w, clusterStore.Get("configmaps"))
 	}
 }

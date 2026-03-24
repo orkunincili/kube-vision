@@ -1,10 +1,9 @@
 package models
 
 import (
-	"context"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"reflect"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 type Pod struct {
@@ -18,36 +17,24 @@ type Pod struct {
 	Age             string `json:"age"`
 }
 
-func GetPods(ctx context.Context, clientset *kubernetes.Clientset, ns string) ([]Pod, error) {
-	pods, err := clientset.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, err
+func BuildPod(pod *corev1.Pod) Pod {
+	return Pod{
+		Name:            pod.Name,
+		Namespace:       pod.Namespace,
+		Status:          GetPodStatus(pod),
+		HostIP:          pod.Status.HostIP,
+		Containers:      len(pod.Spec.Containers),
+		ReadyContainers: GetPodContainerStatus(pod),
+		NodeName:        pod.Spec.NodeName,
+		Age:             GetAge(pod.CreationTimestamp),
 	}
-
-	var result []Pod
-
-	for _, p := range pods.Items {
-		readyContainers := GetPodContainerStatus(p)
-		podAge, err := GetAge(p.CreationTimestamp)
-		if err != nil {
-			return nil, err
-		}
-		newPod := Pod{
-			Name:            p.Name,
-			Namespace:       p.Namespace,
-			Status:          GetPodStatus(p),
-			HostIP:          p.Status.HostIP,
-			Containers:      len(p.Spec.Containers),
-			ReadyContainers: readyContainers,
-			NodeName:        p.Spec.NodeName,
-			Age:             podAge,
-		}
-		result = append(result, newPod)
-	}
-	return result, nil
 }
 
-func GetPodContainerStatus(pod v1.Pod) int {
+func EqualPod(oldPod, newPod *corev1.Pod) bool {
+	return reflect.DeepEqual(BuildPod(oldPod), BuildPod(newPod))
+}
+
+func GetPodContainerStatus(pod *corev1.Pod) int {
 	readyContainers := 0
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		if containerStatus.Ready {
@@ -57,15 +44,13 @@ func GetPodContainerStatus(pod v1.Pod) int {
 	return readyContainers
 }
 
-func GetPodStatus(pod v1.Pod) string {
-
+func GetPodStatus(pod *corev1.Pod) string {
 	if pod.DeletionTimestamp != nil {
 		return "Terminating"
 	}
 
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		if containerStatus.State.Waiting != nil {
-
 			return containerStatus.State.Waiting.Reason
 		}
 		if containerStatus.State.Terminated != nil {

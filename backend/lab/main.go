@@ -1,15 +1,18 @@
 package main
 
 import (
-	"fmt"
+	appinformers "kube-vision-backend/informers"
+	"kube-vision-backend/store"
 	"log"
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/informers"
+	k8sinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -24,50 +27,45 @@ func main() {
 		log.Fatal(err)
 	}
 
-	factory := informers.NewSharedInformerFactory(clientset, 1*time.Second)
+	clusterStore := store.NewClusterStore()
+	factory := k8sinformers.NewSharedInformerFactory(clientset, 0)
 
 	podInformer := factory.Core().V1().Pods().Informer()
+	nodeInformer := factory.Core().V1().Nodes().Informer()
+	serviceInformer := factory.Core().V1().Services().Informer()
+	configMapInformer := factory.Core().V1().ConfigMaps().Informer()
+	deploymentInformer := factory.Apps().V1().Deployments().Informer()
+	ingressInformer := factory.Networking().V1().Ingresses().Informer()
 
-	podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			pod := obj.(*corev1.Pod)
-			fmt.Printf("[ADD]    %s/%s phase=%s\n", pod.Namespace, pod.Name, pod.Status.Phase)
-		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			oldPod := oldObj.(*corev1.Pod)
-			newPod := newObj.(*corev1.Pod)
-
-			// gereksiz update spam azaltmak için phase değişimi kontrolü
-			if oldPod.ResourceVersion == newPod.ResourceVersion {
-				return
-			}
-
-			fmt.Printf(
-				"[UPDATE] %s/%s phase: %s -> %s\n",
-				newPod.Namespace,
-				newPod.Name,
-				oldPod.Status.Phase,
-				newPod.Status.Phase,
-			)
-		},
-		DeleteFunc: func(obj interface{}) {
-			pod := obj.(*corev1.Pod)
-			fmt.Printf("[DELETE] %s/%s\n", pod.Namespace, pod.Name)
-		},
-	})
+	appinformers.RegisterPodInformer(podInformer, clusterStore)
+	appinformers.RegisterNodeInformer(nodeInformer, clusterStore)
+	appinformers.RegisterServiceInformer(serviceInformer, clusterStore)
+	appinformers.RegisterConfigMapInformer(configMapInformer, clusterStore)
+	appinformers.RegisterDeploymentInformer(deploymentInformer, clusterStore)
+	appinformers.RegisterIngressInformer(ingressInformer, clusterStore)
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
 	factory.Start(stopCh)
 
-	// informer cache senkron olana kadar bekle
-	if !cache.WaitForCacheSync(stopCh, podInformer.HasSynced) {
+	if !cache.WaitForCacheSync(
+		stopCh,
+		podInformer.HasSynced,
+		nodeInformer.HasSynced,
+		serviceInformer.HasSynced,
+		configMapInformer.HasSynced,
+		deploymentInformer.HasSynced,
+		ingressInformer.HasSynced,
+	) {
 		log.Fatal("cache sync basarisiz")
 	}
 
-	fmt.Println("Informer calisiyor. Cikmak icin Ctrl+C.")
-	<-stopCh
+	log.Println("Informer'lar calisiyor. Cikmak icin Ctrl+C.")
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	<-sigCh
 }
 
 func loadKubeConfig() (*rest.Config, error) {

@@ -1,23 +1,21 @@
 package api
 
 import (
+	"kube-vision-backend/store"
 	"net/http"
-	"time"
-
-	"k8s.io/client-go/kubernetes"
 )
 
-func SetupRoutes(clientset *kubernetes.Clientset, ns string) *http.ServeMux {
-	globalCache.StartCleanup(1 * time.Hour)
+func SetupRoutes(clusterStore *store.ClusterStore) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/v1/healthz", handleHealthz())
-	mux.HandleFunc("/api/v1/summary", handleCluster(clientset, ns))
-	mux.HandleFunc("/api/v1/nodes", handleNodes(clientset))
-	mux.HandleFunc("/api/v1/pods", handlePods(clientset, ns))
-	mux.HandleFunc("/api/v1/services", handleServices(clientset, ns))
-	mux.HandleFunc("/api/v1/deployments", handleDeployment(clientset, ns))
-	mux.HandleFunc("/api/v1/ingresses", handleIngresses(clientset, ns))
-	mux.HandleFunc("/api/v1/configmaps", handleConfigMap(clientset, ns))
+	mux.HandleFunc("/api/v1/summary", handleCluster(clusterStore))
+	mux.HandleFunc("/api/v1/nodes", handleNodes(clusterStore))
+	mux.HandleFunc("/api/v1/pods", handlePods(clusterStore))
+	mux.HandleFunc("/api/v1/services", handleServices(clusterStore))
+	mux.HandleFunc("/api/v1/deployments", handleDeployment(clusterStore))
+	mux.HandleFunc("/api/v1/ingresses", handleIngresses(clusterStore))
+	mux.HandleFunc("/api/v1/configmaps", handleConfigMap(clusterStore))
+
 	return mux
 }

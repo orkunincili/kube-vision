@@ -13,15 +13,15 @@ import (
 
 const requestTimeout = 5 * time.Second
 
-func GetAge(CreationTimestamp metav1.Time) (string, error) {
+func GetAge(CreationTimestamp metav1.Time) string {
 
 	duration := time.Since(CreationTimestamp.Time)
 
 	if duration.Hours() > 24 {
 		days := int(duration.Hours() / 24)
-		return strconv.Itoa(days) + "d", nil
+		return strconv.Itoa(days) + "d"
 	}
-	return duration.Round(time.Second).String(), nil
+	return duration.Round(time.Second).String()
 }
 
 func NewRequestContext() (context.Context, context.CancelFunc) {
